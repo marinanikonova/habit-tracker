@@ -42,3 +42,13 @@ export interface WeekStats {
   completed: number
   percentage: number
 }
+
+export interface AntiHabit {
+  id: string
+  name: string
+  reason: string | null
+  frequency: Frequency
+  createdAt: string
+  failures: string[]   // dates when the bad thing happened
+  cleanDays: string[]  // dates explicitly confirmed clean
+}

@@ -1,18 +1,21 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Habit, Group, Frequency, FREQUENCY_LABELS, FREQUENCY_ICONS } from '@/lib/types'
+import { Habit, Group, Frequency, FREQUENCY_LABELS, FREQUENCY_ICONS, AntiHabit } from '@/lib/types'
 import {
   loadHabits, saveHabits,
   loadGroups, saveGroups,
+  loadAntiHabits, saveAntiHabits,
   getTodayString, getWeekDates, getExpectedDates,
 } from '@/lib/storage'
 import { useReminders } from '@/lib/hooks/useReminders'
 import GroupSection from '@/components/GroupSection'
 import AchievementsSection from '@/components/AchievementsSection'
 import AddHabitModal from '@/components/AddHabitModal'
+import AddAntiHabitModal from '@/components/AddAntiHabitModal'
+import AntiHabitsSection from '@/components/AntiHabitsSection'
 
-type Tab = 'habits' | 'achievements'
+type Tab = 'habits' | 'anti' | 'achievements'
 type ViewMode = 'by-group' | 'by-frequency'
 
 const FREQUENCIES: Frequency[] = ['daily', 'weekdays', 'weekends', 'weekly']
@@ -20,7 +23,9 @@ const FREQUENCIES: Frequency[] = ['daily', 'weekdays', 'weekends', 'weekly']
 export default function Home() {
   const [habits, setHabits] = useState<Habit[]>([])
   const [groups, setGroups] = useState<Group[]>([])
+  const [antiHabits, setAntiHabits] = useState<AntiHabit[]>([])
   const [showModal, setShowModal] = useState(false)
+  const [showAntiModal, setShowAntiModal] = useState(false)
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null)
   const [tab, setTab] = useState<Tab>('habits')
   const [viewMode, setViewMode] = useState<ViewMode>('by-group')
@@ -32,11 +37,13 @@ export default function Home() {
   useEffect(() => {
     setHabits(loadHabits())
     setGroups(loadGroups())
+    setAntiHabits(loadAntiHabits())
     setMounted(true)
   }, [])
 
   useEffect(() => { if (mounted) saveHabits(habits) }, [habits, mounted])
   useEffect(() => { if (mounted) saveGroups(groups) }, [groups, mounted])
+  useEffect(() => { if (mounted) saveAntiHabits(antiHabits) }, [antiHabits, mounted])
   useReminders(habits, today)
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -96,6 +103,55 @@ export default function Home() {
     setHabits(prev => prev.map(h => h.id === id ? { ...h, ...updates } : h))
   }
 
+  // ── Anti-habit handlers ───────────────────────────────────────────────────────
+
+  function handleAddAntiHabit(name: string, reason: string | null, frequency: Frequency) {
+    const newAntiHabit: AntiHabit = {
+      id: Date.now().toString(),
+      name, reason, frequency,
+      createdAt: new Date().toISOString(),
+      failures: [],
+      cleanDays: [],
+    }
+    setAntiHabits(prev => [...prev, newAntiHabit])
+    setShowAntiModal(false)
+  }
+
+  function handleAntiAnswer(id: string, outcome: 'clean' | 'failed') {
+    setAntiHabits(prev => prev.map(ah => {
+      if (ah.id !== id) return ah
+      if (outcome === 'clean') {
+        return { ...ah, cleanDays: [...ah.cleanDays.filter(d => d !== today), today] }
+      } else {
+        return {
+          ...ah,
+          failures: [...ah.failures.filter(d => d !== today), today],
+          cleanDays: ah.cleanDays.filter(d => d !== today),
+        }
+      }
+    }))
+  }
+
+  function handleAntiUndoAnswer(id: string) {
+    setAntiHabits(prev => prev.map(ah =>
+      ah.id !== id ? ah : {
+        ...ah,
+        failures: ah.failures.filter(d => d !== today),
+        cleanDays: ah.cleanDays.filter(d => d !== today),
+      }
+    ))
+  }
+
+  function handleDeleteAntiHabit(id: string) {
+    setAntiHabits(prev => prev.filter(ah => ah.id !== id))
+  }
+
+  function handleResetAntiHabit(id: string) {
+    setAntiHabits(prev => prev.map(ah =>
+      ah.id === id ? { ...ah, failures: [], cleanDays: [] } : ah
+    ))
+  }
+
   // ── Grouped data ─────────────────────────────────────────────────────────────
 
   const groupedByGroup = useMemo(() => {
@@ -152,8 +208,11 @@ export default function Home() {
                 </p>
               )}
             </div>
-            <button onClick={() => setShowModal(true)}
-              className="flex items-center gap-1.5 bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm">
+            <button
+              onClick={() => tab === 'anti' ? setShowAntiModal(true) : setShowModal(true)}
+              className={`flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm ${tab === 'anti' ? 'bg-slate-800 hover:bg-slate-900' : 'bg-pink-500 hover:bg-pink-600'}`}
+              style={{ display: tab === 'achievements' ? 'none' : undefined }}
+            >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
@@ -182,6 +241,7 @@ export default function Home() {
         {/* Tabs */}
         <div className="flex gap-1 bg-pink-100/60 p-1 rounded-xl mb-4">
           <TabButton active={tab === 'habits'} onClick={() => setTab('habits')}>Привычки</TabButton>
+          <TabButton active={tab === 'anti'} onClick={() => setTab('anti')}>Анти</TabButton>
           <TabButton active={tab === 'achievements'} onClick={() => setTab('achievements')}>Достижения</TabButton>
         </div>
 
@@ -262,6 +322,19 @@ export default function Home() {
           </>
         )}
 
+        {tab === 'anti' && (
+          <AntiHabitsSection
+            antiHabits={antiHabits}
+            today={today}
+            weekDates={weekDates}
+            onAnswer={handleAntiAnswer}
+            onUndoAnswer={handleAntiUndoAnswer}
+            onDelete={handleDeleteAntiHabit}
+            onReset={handleResetAntiHabit}
+            onAdd={() => setShowAntiModal(true)}
+          />
+        )}
+
         {tab === 'achievements' && (
           <AchievementsSection habits={habits} weekDates={weekDates} />
         )}
@@ -274,6 +347,13 @@ export default function Home() {
           onSave={handleSave}
           onAddGroup={handleAddGroup}
           onClose={() => { setShowModal(false); setEditingHabit(null) }}
+        />
+      )}
+
+      {showAntiModal && (
+        <AddAntiHabitModal
+          onSave={handleAddAntiHabit}
+          onClose={() => setShowAntiModal(false)}
         />
       )}
     </main>
