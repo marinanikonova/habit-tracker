@@ -41,10 +41,10 @@ export function saveHabits(habits: Habit[]): void {
 // Adds groupId / frequency to habits saved before this feature existed
 function migrateHabit(h: Habit): Habit {
   return {
-    groupId: null,
-    frequency: 'daily',
-    reminder: null,
     ...h,
+    groupId: h.groupId ?? null,
+    frequency: h.frequency ?? 'daily',
+    reminder: h.reminder ?? null,
   }
 }
 
