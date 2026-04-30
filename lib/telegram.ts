@@ -19,7 +19,7 @@ export async function sendVerificationMessage(phoneNumber: string): Promise<{ re
   const data = await res.json()
 
   if (!data.ok) {
-    const msg: string = data.error?.message ?? 'Telegram Gateway error'
+    const msg: string = typeof data.error === 'string' ? data.error : (data.error?.message ?? 'Telegram Gateway error')
     const code: number | undefined = data.error?.code
     throw Object.assign(new Error(msg), { code, isTelegramError: true })
   }
@@ -50,7 +50,7 @@ export async function checkVerificationStatus(
   const data = await res.json()
 
   if (!data.ok) {
-    const msg: string = data.error?.message ?? 'Telegram Gateway error'
+    const msg: string = typeof data.error === 'string' ? data.error : (data.error?.message ?? 'Telegram Gateway error')
     throw Object.assign(new Error(msg), { isTelegramError: true })
   }
 

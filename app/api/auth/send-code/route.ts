@@ -37,11 +37,13 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true })
   } catch (err: unknown) {
-    if ((err as { isTelegramError?: boolean }).isTelegramError) {
-      return NextResponse.json(
-        { error: 'Не удалось отправить код. Проверь номер или попробуй позже.' },
-        { status: 502 },
-      )
+    const e = err as { isTelegramError?: boolean; message?: string; code?: number }
+    if (e.isTelegramError) {
+      console.error('[send-code] Telegram error:', e.code, e.message)
+      const userMsg = e.message === 'BALANCE_NOT_ENOUGH'
+        ? 'Сервис временно недоступен. Попробуй позже.'
+        : 'Не удалось отправить код. Проверь номер или попробуй позже.'
+      return NextResponse.json({ error: userMsg }, { status: 502 })
     }
     console.error('[send-code]', err)
     return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
