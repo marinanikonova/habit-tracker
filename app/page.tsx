@@ -28,6 +28,7 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>('habits')
   const [viewMode, setViewMode] = useState<ViewMode>('by-group')
   const [mounted, setMounted] = useState(false)
+  const [userPhone, setUserPhone] = useState<string | null>(null)
 
   const today = getTodayString()
   const weekDates = getWeekDates()
@@ -52,11 +53,13 @@ export default function Home() {
   useEffect(() => {
     async function load() {
       try {
-        const [dbHabits, dbGroups, dbAnti] = await Promise.all([
-          fetch('/api/habits').then(r => r.json()),
-          fetch('/api/groups').then(r => r.json()),
-          fetch('/api/anti-habits').then(r => r.json()),
+        const [me, dbHabits, dbGroups, dbAnti] = await Promise.all([
+          fetch('/api/auth/me').then(r => r.ok ? r.json() : null),
+          fetch('/api/habits').then(r => r.ok ? r.json() : []),
+          fetch('/api/groups').then(r => r.ok ? r.json() : []),
+          fetch('/api/anti-habits').then(r => r.ok ? r.json() : []),
         ])
+        if (me) setUserPhone(me.phone as string)
         // First launch: DB is empty — migrate from localStorage
         if (dbHabits.length === 0 && dbGroups.length === 0 && dbAnti.length === 0) {
           setHabits(loadHabits())
@@ -68,7 +71,6 @@ export default function Home() {
           setAntiHabits(dbAnti)
         }
       } catch {
-        // DB unavailable — fall back to localStorage
         setHabits(loadHabits())
         setGroups(loadGroups())
         setAntiHabits(loadAntiHabits())
@@ -253,6 +255,9 @@ export default function Home() {
             <div>
               <p className="text-sm text-slate-400 font-medium">{formatDate(today)}</p>
               <h1 className="text-2xl font-bold text-slate-800 mt-0.5">Мои привычки</h1>
+              {userPhone && (
+                <p className="text-xs text-slate-400 mt-0.5">{userPhone}</p>
+              )}
               {totalHabits > 0 && (
                 <p className="text-sm text-slate-500 mt-1">
                   {doneToday === totalHabits
@@ -261,16 +266,32 @@ export default function Home() {
                 </p>
               )}
             </div>
-            <button
-              onClick={() => tab === 'anti' ? setShowAntiModal(true) : setShowModal(true)}
-              className={`flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm ${tab === 'anti' ? 'bg-slate-800 hover:bg-slate-900' : 'bg-pink-500 hover:bg-pink-600'}`}
-              style={{ display: tab === 'achievements' ? 'none' : undefined }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              Добавить
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => tab === 'anti' ? setShowAntiModal(true) : setShowModal(true)}
+                className={`flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm ${tab === 'anti' ? 'bg-slate-800 hover:bg-slate-900' : 'bg-pink-500 hover:bg-pink-600'}`}
+                style={{ display: tab === 'achievements' ? 'none' : undefined }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Добавить
+              </button>
+              <button
+                onClick={async () => {
+                  await fetch('/api/auth/logout', { method: 'POST' })
+                  window.location.href = '/login'
+                }}
+                title="Выйти"
+                className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-pink-100 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
           {totalHabits > 0 && (
