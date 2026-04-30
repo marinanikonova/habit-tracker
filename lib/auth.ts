@@ -2,7 +2,8 @@ import { SignJWT, jwtVerify } from 'jose'
 
 export interface SessionPayload {
   userId: number
-  phone: string
+  telegramId: number
+  firstName: string
 }
 
 const COOKIE_NAME = 'session'

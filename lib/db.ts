@@ -12,12 +12,27 @@ export async function ensureSchema() {
   await sql`
     CREATE TABLE IF NOT EXISTS users (
       id            SERIAL PRIMARY KEY,
-      phone_number  TEXT UNIQUE NOT NULL,
+      telegram_id   BIGINT UNIQUE,
+      phone_number  TEXT UNIQUE,
+      first_name    TEXT,
+      last_name     TEXT,
+      username      TEXT,
+      photo_url     TEXT,
       created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       last_login_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `
+
+  // Migrate existing phone-only schema — add telegram columns if missing
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_id   BIGINT`.catch(() => {})
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name    TEXT`.catch(() => {})
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name     TEXT`.catch(() => {})
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS username      TEXT`.catch(() => {})
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url     TEXT`.catch(() => {})
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS users_telegram_id_idx
+    ON users(telegram_id) WHERE telegram_id IS NOT NULL
+  `.catch(() => {})
 
   await sql`
     CREATE TABLE IF NOT EXISTS user_data (
@@ -35,36 +50,36 @@ export async function ensureSchema() {
       window_start TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS pending_verifications (
-      phone_number TEXT PRIMARY KEY,
-      request_id   TEXT NOT NULL,
-      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 
-export async function upsertUser(
-  phoneNumber: string,
-): Promise<{ id: number; isNew: boolean }> {
+export async function upsertTelegramUser(data: {
+  telegramId: number
+  firstName: string
+  lastName?: string
+  username?: string
+  photoUrl?: string
+}): Promise<{ id: number }> {
   const sql = getDb()
-  const existing = await sql`
-    SELECT id FROM users WHERE phone_number = ${phoneNumber}
-  `
-  if (existing.length > 0) {
-    await sql`
-      UPDATE users SET last_login_at = NOW(), updated_at = NOW()
-      WHERE phone_number = ${phoneNumber}
-    `
-    return { id: existing[0].id as number, isNew: false }
-  }
   const rows = await sql`
-    INSERT INTO users (phone_number) VALUES (${phoneNumber}) RETURNING id
+    INSERT INTO users (telegram_id, first_name, last_name, username, photo_url)
+    VALUES (
+      ${data.telegramId},
+      ${data.firstName},
+      ${data.lastName ?? null},
+      ${data.username ?? null},
+      ${data.photoUrl ?? null}
+    )
+    ON CONFLICT (telegram_id) DO UPDATE SET
+      first_name    = EXCLUDED.first_name,
+      last_name     = EXCLUDED.last_name,
+      username      = EXCLUDED.username,
+      photo_url     = EXCLUDED.photo_url,
+      last_login_at = NOW()
+    RETURNING id
   `
-  return { id: rows[0].id as number, isNew: true }
+  return { id: rows[0].id as number }
 }
 
 // ── App data (per-user) ───────────────────────────────────────────────────────
@@ -107,72 +122,6 @@ export async function migrateAnonymousData(userId: number): Promise<void> {
     }
     await sql`DELETE FROM app_data`
   } catch {
-    // app_data doesn't exist or has incompatible schema — skip
+    // app_data doesn't exist — skip
   }
-}
-
-// ── Pending verifications ─────────────────────────────────────────────────────
-
-export async function storePendingVerification(
-  phoneNumber: string,
-  requestId: string,
-): Promise<void> {
-  const sql = getDb()
-  await sql`
-    INSERT INTO pending_verifications (phone_number, request_id)
-    VALUES (${phoneNumber}, ${requestId})
-    ON CONFLICT (phone_number)
-    DO UPDATE SET request_id = EXCLUDED.request_id, created_at = NOW()
-  `
-}
-
-export async function getPendingVerification(
-  phoneNumber: string,
-): Promise<string | null> {
-  const sql = getDb()
-  const rows = await sql`
-    SELECT request_id FROM pending_verifications
-    WHERE phone_number = ${phoneNumber}
-      AND created_at > NOW() - INTERVAL '10 minutes'
-  `
-  return rows.length > 0 ? (rows[0].request_id as string) : null
-}
-
-export async function deletePendingVerification(phoneNumber: string): Promise<void> {
-  const sql = getDb()
-  await sql`DELETE FROM pending_verifications WHERE phone_number = ${phoneNumber}`
-}
-
-// ── Rate limiting ─────────────────────────────────────────────────────────────
-
-export async function checkRateLimit(
-  key: string,
-  maxAttempts: number,
-  windowMs: number,
-): Promise<{ allowed: boolean; retryAfter?: number }> {
-  const sql = getDb()
-  const windowSec = Math.floor(windowMs / 1000)
-
-  const rows = await sql`
-    SELECT count, window_start FROM rate_limits WHERE key = ${key}
-  `
-
-  if (rows.length === 0) {
-    await sql`INSERT INTO rate_limits (key, count, window_start) VALUES (${key}, 1, NOW())`
-    return { allowed: true }
-  }
-
-  const elapsed = (Date.now() - new Date(rows[0].window_start as string).getTime()) / 1000
-
-  if (elapsed >= windowSec) {
-    await sql`UPDATE rate_limits SET count = 1, window_start = NOW() WHERE key = ${key}`
-    return { allowed: true }
-  }
-
-  if ((rows[0].count as number) >= maxAttempts) {
-    return { allowed: false, retryAfter: Math.ceil(windowSec - elapsed) }
-  }
-
-  await sql`UPDATE rate_limits SET count = count + 1 WHERE key = ${key}`
-  return { allowed: true }
 }

@@ -28,7 +28,7 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>('habits')
   const [viewMode, setViewMode] = useState<ViewMode>('by-group')
   const [mounted, setMounted] = useState(false)
-  const [userPhone, setUserPhone] = useState<string | null>(null)
+  const [userName, setUserName] = useState<string | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   const today = getTodayString()
@@ -57,7 +57,7 @@ export default function Home() {
 
       if (me) {
         setIsLoggedIn(true)
-        setUserPhone(me.phone as string)
+        setUserName(me.firstName as string)
         try {
           const [dbHabits, dbGroups, dbAnti] = await Promise.all([
             fetch('/api/habits').then(r => r.ok ? r.json() : []),
@@ -277,8 +277,8 @@ export default function Home() {
             <div>
               <p className="text-sm text-slate-400 font-medium">{formatDate(today)}</p>
               <h1 className="text-2xl font-bold text-slate-800 mt-0.5">Мои привычки</h1>
-              {userPhone && (
-                <p className="text-xs text-slate-400 mt-0.5">{userPhone}</p>
+              {userName && (
+                <p className="text-xs text-slate-400 mt-0.5">{userName}</p>
               )}
               {totalHabits > 0 && (
                 <p className="text-sm text-slate-500 mt-1">
