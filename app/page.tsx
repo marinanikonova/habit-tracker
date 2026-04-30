@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Habit, Group, Frequency, FREQUENCY_LABELS, FREQUENCY_ICONS, AntiHabit } from '@/lib/types'
 import {
-  loadHabits, saveHabits,
-  loadGroups, saveGroups,
-  loadAntiHabits, saveAntiHabits,
+  loadHabits, loadGroups, loadAntiHabits,
   getTodayString, getWeekDates, getExpectedDates,
 } from '@/lib/storage'
 import { useReminders } from '@/lib/hooks/useReminders'
@@ -34,16 +32,71 @@ export default function Home() {
   const today = getTodayString()
   const weekDates = getWeekDates()
 
+  // ── DB helpers ───────────────────────────────────────────────────────────────
+
+  function dbSave(endpoint: string, data: unknown[]) {
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).catch(console.error)
+  }
+
+  // Debounce refs — avoid hammering the DB on rapid state changes
+  const habitTimer   = useRef<ReturnType<typeof setTimeout>>()
+  const groupTimer   = useRef<ReturnType<typeof setTimeout>>()
+  const antiTimer    = useRef<ReturnType<typeof setTimeout>>()
+
+  // ── Load ─────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
-    setHabits(loadHabits())
-    setGroups(loadGroups())
-    setAntiHabits(loadAntiHabits())
-    setMounted(true)
+    async function load() {
+      try {
+        const [dbHabits, dbGroups, dbAnti] = await Promise.all([
+          fetch('/api/habits').then(r => r.json()),
+          fetch('/api/groups').then(r => r.json()),
+          fetch('/api/anti-habits').then(r => r.json()),
+        ])
+        // First launch: DB is empty — migrate from localStorage
+        if (dbHabits.length === 0 && dbGroups.length === 0 && dbAnti.length === 0) {
+          setHabits(loadHabits())
+          setGroups(loadGroups())
+          setAntiHabits(loadAntiHabits())
+        } else {
+          setHabits(dbHabits)
+          setGroups(dbGroups)
+          setAntiHabits(dbAnti)
+        }
+      } catch {
+        // DB unavailable — fall back to localStorage
+        setHabits(loadHabits())
+        setGroups(loadGroups())
+        setAntiHabits(loadAntiHabits())
+      }
+      setMounted(true)
+    }
+    load()
   }, [])
 
-  useEffect(() => { if (mounted) saveHabits(habits) }, [habits, mounted])
-  useEffect(() => { if (mounted) saveGroups(groups) }, [groups, mounted])
-  useEffect(() => { if (mounted) saveAntiHabits(antiHabits) }, [antiHabits, mounted])
+  // ── Save (debounced 600 ms) ───────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!mounted) return
+    clearTimeout(habitTimer.current)
+    habitTimer.current = setTimeout(() => dbSave('/api/habits', habits), 600)
+  }, [habits, mounted])
+
+  useEffect(() => {
+    if (!mounted) return
+    clearTimeout(groupTimer.current)
+    groupTimer.current = setTimeout(() => dbSave('/api/groups', groups), 600)
+  }, [groups, mounted])
+
+  useEffect(() => {
+    if (!mounted) return
+    clearTimeout(antiTimer.current)
+    antiTimer.current = setTimeout(() => dbSave('/api/anti-habits', antiHabits), 600)
+  }, [antiHabits, mounted])
   useReminders(habits, today)
 
   // ── Handlers ────────────────────────────────────────────────────────────────
