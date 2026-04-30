@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Habit, Group, Frequency, FREQUENCY_LABELS, FREQUENCY_ICONS, AntiHabit } from '@/lib/types'
 import {
-  loadHabits, loadGroups, loadAntiHabits,
+  loadHabits, saveHabits, loadGroups, saveGroups, loadAntiHabits, saveAntiHabits,
   getTodayString, getWeekDates, getExpectedDates,
 } from '@/lib/storage'
 import { useReminders } from '@/lib/hooks/useReminders'
@@ -29,6 +29,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<ViewMode>('by-group')
   const [mounted, setMounted] = useState(false)
   const [userPhone, setUserPhone] = useState<string | null>(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   const today = getTodayString()
   const weekDates = getWeekDates()
@@ -52,25 +53,34 @@ export default function Home() {
 
   useEffect(() => {
     async function load() {
-      try {
-        const [me, dbHabits, dbGroups, dbAnti] = await Promise.all([
-          fetch('/api/auth/me').then(r => r.ok ? r.json() : null),
-          fetch('/api/habits').then(r => r.ok ? r.json() : []),
-          fetch('/api/groups').then(r => r.ok ? r.json() : []),
-          fetch('/api/anti-habits').then(r => r.ok ? r.json() : []),
-        ])
-        if (me) setUserPhone(me.phone as string)
-        // First launch: DB is empty — migrate from localStorage
-        if (dbHabits.length === 0 && dbGroups.length === 0 && dbAnti.length === 0) {
+      const me = await fetch('/api/auth/me').then(r => r.ok ? r.json() : null).catch(() => null)
+
+      if (me) {
+        setIsLoggedIn(true)
+        setUserPhone(me.phone as string)
+        try {
+          const [dbHabits, dbGroups, dbAnti] = await Promise.all([
+            fetch('/api/habits').then(r => r.ok ? r.json() : []),
+            fetch('/api/groups').then(r => r.ok ? r.json() : []),
+            fetch('/api/anti-habits').then(r => r.ok ? r.json() : []),
+          ])
+          // DB empty on first login — migrate from localStorage, save effects will push to DB
+          if (dbHabits.length === 0 && dbGroups.length === 0 && dbAnti.length === 0) {
+            setHabits(loadHabits())
+            setGroups(loadGroups())
+            setAntiHabits(loadAntiHabits())
+          } else {
+            setHabits(dbHabits)
+            setGroups(dbGroups)
+            setAntiHabits(dbAnti)
+          }
+        } catch {
           setHabits(loadHabits())
           setGroups(loadGroups())
           setAntiHabits(loadAntiHabits())
-        } else {
-          setHabits(dbHabits)
-          setGroups(dbGroups)
-          setAntiHabits(dbAnti)
         }
-      } catch {
+      } else {
+        // Anonymous — use localStorage only
         setHabits(loadHabits())
         setGroups(loadGroups())
         setAntiHabits(loadAntiHabits())
@@ -84,21 +94,33 @@ export default function Home() {
 
   useEffect(() => {
     if (!mounted) return
-    clearTimeout(habitTimer.current)
-    habitTimer.current = setTimeout(() => dbSave('/api/habits', habits), 600)
-  }, [habits, mounted])
+    if (isLoggedIn) {
+      clearTimeout(habitTimer.current)
+      habitTimer.current = setTimeout(() => dbSave('/api/habits', habits), 600)
+    } else {
+      saveHabits(habits)
+    }
+  }, [habits, mounted, isLoggedIn])
 
   useEffect(() => {
     if (!mounted) return
-    clearTimeout(groupTimer.current)
-    groupTimer.current = setTimeout(() => dbSave('/api/groups', groups), 600)
-  }, [groups, mounted])
+    if (isLoggedIn) {
+      clearTimeout(groupTimer.current)
+      groupTimer.current = setTimeout(() => dbSave('/api/groups', groups), 600)
+    } else {
+      saveGroups(groups)
+    }
+  }, [groups, mounted, isLoggedIn])
 
   useEffect(() => {
     if (!mounted) return
-    clearTimeout(antiTimer.current)
-    antiTimer.current = setTimeout(() => dbSave('/api/anti-habits', antiHabits), 600)
-  }, [antiHabits, mounted])
+    if (isLoggedIn) {
+      clearTimeout(antiTimer.current)
+      antiTimer.current = setTimeout(() => dbSave('/api/anti-habits', antiHabits), 600)
+    } else {
+      saveAntiHabits(antiHabits)
+    }
+  }, [antiHabits, mounted, isLoggedIn])
   useReminders(habits, today)
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -277,20 +299,22 @@ export default function Home() {
                 </svg>
                 Добавить
               </button>
-              <button
-                onClick={async () => {
-                  await fetch('/api/auth/logout', { method: 'POST' })
-                  window.location.href = '/login'
-                }}
-                title="Выйти"
-                className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-pink-100 text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                  <polyline points="16 17 21 12 16 7"/>
-                  <line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-              </button>
+              {isLoggedIn && (
+                <button
+                  onClick={async () => {
+                    await fetch('/api/auth/logout', { method: 'POST' })
+                    window.location.reload()
+                  }}
+                  title="Выйти"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-pink-100 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
 
@@ -311,6 +335,27 @@ export default function Home() {
             </div>
           )}
         </header>
+
+        {/* Save-progress banner for anonymous users */}
+        {!isLoggedIn && (
+          <div className="bg-white border border-pink-100 rounded-2xl px-4 py-3.5 mb-4 flex items-center justify-between shadow-sm">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Сохраняй историю</p>
+              <p className="text-xs text-slate-400 mt-0.5">Войди, чтобы данные не потерялись</p>
+            </div>
+            <a
+              href="/login"
+              className="flex items-center gap-1.5 bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors whitespace-nowrap"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                <polyline points="10 17 15 12 10 7"/>
+                <line x1="15" y1="12" x2="3" y2="12"/>
+              </svg>
+              Войти
+            </a>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 bg-pink-100/60 p-1 rounded-xl mb-4">
