@@ -70,7 +70,7 @@ export async function POST(req: Request) {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [[
-            { text: '🌱 Открыть приложение', url: appUrl },
+            { text: '🌱 Открыть приложение', url: `${appUrl}/login?token=${loginToken}` },
           ]],
         },
       })

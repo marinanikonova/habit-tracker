@@ -1,20 +1,40 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 type Status = 'idle' | 'link-ready' | 'waiting' | 'error'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [status, setStatus] = useState<Status>('idle')
   const [botLink, setBotLink] = useState('')
   const pollRef = useRef<ReturnType<typeof setInterval>>()
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>()
 
+  // Redirect if already logged in
   useEffect(() => {
     fetch('/api/auth/me').then(r => { if (r.ok) router.replace('/') })
   }, [router])
+
+  // If opened from bot with ?token= — immediately verify and enter
+  useEffect(() => {
+    const token = searchParams.get('token')
+    if (!token) return
+    setStatus('waiting')
+    fetch('/api/auth/check-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    }).then(r => {
+      if (r.status === 200) {
+        window.location.href = '/'
+      } else {
+        setStatus('error')
+      }
+    }).catch(() => setStatus('error'))
+  }, [searchParams])
 
   useEffect(() => {
     return () => {
@@ -58,7 +78,6 @@ export default function LoginPage() {
 
     pollRef.current = setInterval(check, 2000)
 
-    // Also check immediately when user returns to this tab
     const onVisible = () => { if (document.visibilityState === 'visible') check() }
     document.addEventListener('visibilitychange', onVisible)
 
@@ -85,7 +104,7 @@ export default function LoginPage() {
           {status === 'idle' && (
             <>
               <p className="text-sm text-slate-500 mb-5 text-center">
-                Нажми кнопку — откроется Telegram, там нужно нажать «Подтвердить вход»
+                Нажми кнопку — бот пришлёт сообщение с подтверждением
               </p>
               <button
                 onClick={handleLogin}
@@ -107,7 +126,7 @@ export default function LoginPage() {
                 href={botLink}
                 onClick={() => setStatus('waiting')}
                 className="w-full py-3 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2"
-                style={{ backgroundColor: '#2AABEE' }}
+                style={{ backgroundColor: '#2AABEE', display: 'flex' }}
               >
                 <TelegramIcon />
                 Открыть Telegram
@@ -151,6 +170,14 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   )
 }
 
