@@ -41,8 +41,7 @@ export default function LoginPage() {
         if (r.status === 200) {
           clearInterval(pollRef.current)
           clearTimeout(timeoutRef.current)
-          router.replace('/')
-          router.refresh()
+          window.location.href = '/'
         } else if (r.status === 400) {
           clearInterval(pollRef.current)
           setStatus('error')
