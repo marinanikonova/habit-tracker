@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-type Status = 'idle' | 'waiting' | 'error'
+type Status = 'idle' | 'link-ready' | 'waiting' | 'error'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -28,7 +28,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/start-login', { method: 'POST' })
       const data = await res.json()
       setBotLink(data.botLink)
-      setStatus('waiting')
+      setStatus('link-ready')
       startPolling(data.token)
     } catch {
       setStatus('error')
@@ -98,28 +98,40 @@ export default function LoginPage() {
             </>
           )}
 
+          {status === 'link-ready' && (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-500 text-center">
+                Нажми кнопку — бот пришлёт сообщение с подтверждением
+              </p>
+              <a
+                href={botLink}
+                onClick={() => setStatus('waiting')}
+                className="w-full py-3 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#2AABEE' }}
+              >
+                <TelegramIcon />
+                Открыть Telegram
+              </a>
+            </div>
+          )}
+
           {status === 'waiting' && (
             <div className="text-center py-2 space-y-4">
-              {botLink && (
-                <a
-                  href={botLink}
-                  className="w-full py-3 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2"
-                  style={{ backgroundColor: '#2AABEE', display: 'flex' }}
-                >
-                  <TelegramIcon />
-                  Открыть Telegram
-                </a>
-              )}
+              <div className="flex items-center gap-2 justify-center">
+                <div
+                  className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin shrink-0"
+                  style={{ borderColor: '#2AABEE', borderTopColor: 'transparent' }}
+                />
+                <span className="text-sm text-slate-600">Ожидаем подтверждения…</span>
+              </div>
               <p className="text-xs text-slate-400">
                 Нажми «Подтвердить вход» в сообщении от бота, затем вернись сюда
               </p>
-              <div className="flex items-center gap-2 justify-center pt-1">
-                <div
-                  className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin"
-                  style={{ borderColor: '#2AABEE', borderTopColor: 'transparent' }}
-                />
-                <span className="text-xs text-slate-400">Ожидаем подтверждения…</span>
-              </div>
+              {botLink && (
+                <a href={botLink} className="text-xs font-medium" style={{ color: '#2AABEE' }}>
+                  Открыть Telegram ещё раз →
+                </a>
+              )}
             </div>
           )}
 
