@@ -24,38 +24,49 @@ export default function LoginPage() {
   }, [])
 
   async function handleLogin() {
-    setStatus('waiting')
     try {
       const res = await fetch('/api/auth/start-login', { method: 'POST' })
       const data = await res.json()
       setBotLink(data.botLink)
-      window.open(data.botLink, '_blank')
-
-      // Poll every 2s for confirmation
-      pollRef.current = setInterval(async () => {
-        const r = await fetch('/api/auth/check-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: data.token }),
-        })
-        if (r.status === 200) {
-          clearInterval(pollRef.current)
-          clearTimeout(timeoutRef.current)
-          window.location.href = '/'
-        } else if (r.status === 400) {
-          clearInterval(pollRef.current)
-          setStatus('error')
-        }
-      }, 2000)
-
-      // Give up after 5 minutes
-      timeoutRef.current = setTimeout(() => {
-        clearInterval(pollRef.current)
-        setStatus('error')
-      }, 5 * 60 * 1000)
+      setStatus('waiting')
+      startPolling(data.token)
     } catch {
       setStatus('error')
     }
+  }
+
+  function startPolling(token: string) {
+    clearInterval(pollRef.current)
+    clearTimeout(timeoutRef.current)
+
+    const check = async () => {
+      const r = await fetch('/api/auth/check-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      }).catch(() => null)
+      if (!r) return
+      if (r.status === 200) {
+        clearInterval(pollRef.current)
+        clearTimeout(timeoutRef.current)
+        window.location.href = '/'
+      } else if (r.status === 400) {
+        clearInterval(pollRef.current)
+        setStatus('error')
+      }
+    }
+
+    pollRef.current = setInterval(check, 2000)
+
+    // Also check immediately when user returns to this tab
+    const onVisible = () => { if (document.visibilityState === 'visible') check() }
+    document.addEventListener('visibilitychange', onVisible)
+
+    timeoutRef.current = setTimeout(() => {
+      clearInterval(pollRef.current)
+      document.removeEventListener('visibilitychange', onVisible)
+      setStatus('error')
+    }, 5 * 60 * 1000)
   }
 
   return (
@@ -88,25 +99,27 @@ export default function LoginPage() {
           )}
 
           {status === 'waiting' && (
-            <div className="text-center py-2">
-              <div
-                className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-4"
-                style={{ borderColor: '#2AABEE', borderTopColor: 'transparent' }}
-              />
-              <p className="text-sm font-semibold text-slate-700 mb-1">Ожидаем подтверждения</p>
-              <p className="text-xs text-slate-400 mb-5">
-                Открой Telegram и нажми кнопку «Подтвердить вход» в сообщении от бота
-              </p>
+            <div className="text-center py-2 space-y-4">
               {botLink && (
                 <a
                   href={botLink}
-                  target="_blank"
-                  className="text-xs font-medium"
-                  style={{ color: '#2AABEE' }}
+                  className="w-full py-3 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#2AABEE', display: 'flex' }}
                 >
-                  Открыть Telegram ещё раз →
+                  <TelegramIcon />
+                  Открыть Telegram
                 </a>
               )}
+              <p className="text-xs text-slate-400">
+                Нажми «Подтвердить вход» в сообщении от бота, затем вернись сюда
+              </p>
+              <div className="flex items-center gap-2 justify-center pt-1">
+                <div
+                  className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin"
+                  style={{ borderColor: '#2AABEE', borderTopColor: 'transparent' }}
+                />
+                <span className="text-xs text-slate-400">Ожидаем подтверждения…</span>
+              </div>
             </div>
           )}
 
