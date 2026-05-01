@@ -27,13 +27,27 @@ function LoginContent() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
-    }).then(r => {
+    }).then(async r => {
       if (r.status === 200) {
         window.location.href = '/'
+      } else if (r.status === 202) {
+        // Confirmed in Telegram but server hasn't caught up — retry a few times
+        let tries = 0
+        const retry = setInterval(async () => {
+          tries++
+          const r2 = await fetch('/api/auth/check-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+          }).catch(() => null)
+          if (r2?.status === 200) { clearInterval(retry); window.location.href = '/' }
+          if (tries >= 10) { clearInterval(retry); setStatus('idle') }
+        }, 1500)
       } else {
-        setStatus('error')
+        // Token expired or not found — go back to idle so user can try again
+        setStatus('idle')
       }
-    }).catch(() => setStatus('error'))
+    }).catch(() => setStatus('idle'))
   }, [searchParams])
 
   useEffect(() => {

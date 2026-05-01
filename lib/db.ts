@@ -114,7 +114,7 @@ export async function createLoginToken(token: string): Promise<void> {
   const sql = getDb()
   await sql`INSERT INTO login_tokens (token) VALUES (${token})`
   // Clean up expired tokens in the background
-  sql`DELETE FROM login_tokens WHERE created_at < NOW() - INTERVAL '10 minutes'`.catch(() => {})
+  sql`DELETE FROM login_tokens WHERE created_at < NOW() - INTERVAL '30 minutes'`.catch(() => {})
 }
 
 export async function verifyLoginToken(
@@ -144,7 +144,7 @@ export async function getLoginToken(token: string): Promise<{
   const rows = await sql`
     SELECT status, telegram_id, first_name, last_name, username
     FROM login_tokens
-    WHERE token = ${token} AND created_at > NOW() - INTERVAL '10 minutes'
+    WHERE token = ${token} AND created_at > NOW() - INTERVAL '30 minutes'
   `
   return rows.length > 0 ? (rows[0] as ReturnType<typeof getLoginToken> extends Promise<infer T> ? NonNullable<T> : never) : null
 }
