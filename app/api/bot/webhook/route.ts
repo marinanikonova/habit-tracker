@@ -57,6 +57,8 @@ export async function POST(req: Request) {
         username: user.username,
       })
 
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://habit-tracker-ebon-alpha.vercel.app'
+
       await tg('answerCallbackQuery', {
         callback_query_id: cq.id,
         text: '✅ Вход подтверждён!',
@@ -64,8 +66,13 @@ export async function POST(req: Request) {
       await tg('editMessageText', {
         chat_id: cq.message.chat.id,
         message_id: cq.message.message_id,
-        text: '✅ Вход в *Мои привычки* подтверждён!\n\nМожешь вернуться в браузер.',
+        text: '✅ Вход в *Мои привычки* подтверждён!',
         parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '🌱 Открыть приложение', url: appUrl },
+          ]],
+        },
       })
     }
   } catch (err) {
