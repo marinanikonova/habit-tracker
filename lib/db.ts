@@ -22,8 +22,6 @@ export async function ensureSchema() {
       last_login_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `
-
-  // Migrate existing phone-only schema — add telegram columns if missing
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_id   BIGINT`.catch(() => {})
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name    TEXT`.catch(() => {})
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name     TEXT`.catch(() => {})
@@ -44,10 +42,14 @@ export async function ensureSchema() {
   `
 
   await sql`
-    CREATE TABLE IF NOT EXISTS rate_limits (
-      key          TEXT PRIMARY KEY,
-      count        INTEGER NOT NULL DEFAULT 1,
-      window_start TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    CREATE TABLE IF NOT EXISTS login_tokens (
+      token       TEXT PRIMARY KEY,
+      telegram_id BIGINT,
+      first_name  TEXT,
+      last_name   TEXT,
+      username    TEXT,
+      status      TEXT NOT NULL DEFAULT 'pending',
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `
 }
@@ -104,6 +106,52 @@ export async function setData(
     VALUES (${userId}, ${key}, ${json}::jsonb)
     ON CONFLICT (user_id, key) DO UPDATE SET value = EXCLUDED.value
   `
+}
+
+// ── Login tokens (bot-based auth) ─────────────────────────────────────────────
+
+export async function createLoginToken(token: string): Promise<void> {
+  const sql = getDb()
+  await sql`INSERT INTO login_tokens (token) VALUES (${token})`
+  // Clean up expired tokens in the background
+  sql`DELETE FROM login_tokens WHERE created_at < NOW() - INTERVAL '10 minutes'`.catch(() => {})
+}
+
+export async function verifyLoginToken(
+  token: string,
+  user: { telegramId: number; firstName: string; lastName?: string; username?: string },
+): Promise<void> {
+  const sql = getDb()
+  await sql`
+    UPDATE login_tokens SET
+      telegram_id = ${user.telegramId},
+      first_name  = ${user.firstName},
+      last_name   = ${user.lastName ?? null},
+      username    = ${user.username ?? null},
+      status      = 'verified'
+    WHERE token = ${token} AND status = 'pending'
+  `
+}
+
+export async function getLoginToken(token: string): Promise<{
+  status: string
+  telegram_id: number
+  first_name: string
+  last_name: string | null
+  username: string | null
+} | null> {
+  const sql = getDb()
+  const rows = await sql`
+    SELECT status, telegram_id, first_name, last_name, username
+    FROM login_tokens
+    WHERE token = ${token} AND created_at > NOW() - INTERVAL '10 minutes'
+  `
+  return rows.length > 0 ? (rows[0] as ReturnType<typeof getLoginToken> extends Promise<infer T> ? NonNullable<T> : never) : null
+}
+
+export async function deleteLoginToken(token: string): Promise<void> {
+  const sql = getDb()
+  await sql`DELETE FROM login_tokens WHERE token = ${token}`
 }
 
 // ── One-time migration: old anonymous app_data → user_data ───────────────────
