@@ -48,11 +48,15 @@ export default function GroupSection({
   return (
     <div className="mb-5 animate-fade-in">
       {/* Group header */}
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between mb-2 px-1 group"
-      >
-        <div className="flex items-center gap-2">
+      <div className="w-full flex items-center justify-between mb-2 px-1 group">
+        {/* Toggle area */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setOpen(v => !v)}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setOpen(v => !v) }}
+          className="flex-1 flex items-center gap-2 cursor-pointer min-w-0"
+        >
           <span className="text-xl">{group?.emoji ?? '📋'}</span>
           <span className="font-semibold text-slate-700 text-sm">
             {group?.name ?? 'Без группы'}
@@ -64,7 +68,13 @@ export default function GroupSection({
 
         <div className="flex items-center gap-2">
           {/* Mini progress pill */}
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pctColor(pct)}`}>
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={() => setOpen(v => !v)}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setOpen(v => !v) }}
+            className={`text-xs font-semibold px-2 py-0.5 rounded-full cursor-pointer ${pctColor(pct)}`}
+          >
             {pct}%
           </span>
 
@@ -81,15 +91,23 @@ export default function GroupSection({
           )}
 
           {/* Chevron */}
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-            className={`text-slate-400 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setOpen(v => !v)}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setOpen(v => !v) }}
+            className="cursor-pointer"
           >
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              className={`text-slate-400 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+            >
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
         </div>
-      </button>
+      </div>
 
       {/* Habit cards */}
       {open && (

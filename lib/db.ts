@@ -52,6 +52,23 @@ export async function ensureSchema() {
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id           SERIAL PRIMARY KEY,
+      user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name         TEXT NOT NULL,
+      key_hash     TEXT NOT NULL,
+      key_prefix   TEXT NOT NULL,
+      last_used_at TIMESTAMPTZ,
+      revoked_at   TIMESTAMPTZ,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  await sql`
+    CREATE INDEX IF NOT EXISTS api_keys_prefix_active_idx
+    ON api_keys(key_prefix) WHERE revoked_at IS NULL
+  `.catch(() => {})
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────────
@@ -152,6 +169,75 @@ export async function getLoginToken(token: string): Promise<{
 export async function deleteLoginToken(token: string): Promise<void> {
   const sql = getDb()
   await sql`DELETE FROM login_tokens WHERE token = ${token}`
+}
+
+// ── API Keys ──────────────────────────────────────────────────────────────────
+
+export interface ApiKeyRow {
+  id: number
+  name: string
+  key_prefix: string
+  last_used_at: string | null
+  revoked_at: string | null
+  created_at: string
+}
+
+export async function createApiKey(
+  userId: number,
+  name: string,
+  keyHash: string,
+  keyPrefix: string,
+): Promise<{ id: number }> {
+  const sql = getDb()
+  const rows = await sql`
+    INSERT INTO api_keys (user_id, name, key_hash, key_prefix)
+    VALUES (${userId}, ${name}, ${keyHash}, ${keyPrefix})
+    RETURNING id
+  `
+  return { id: rows[0].id as number }
+}
+
+export async function getApiKeysByUser(userId: number): Promise<ApiKeyRow[]> {
+  const sql = getDb()
+  const rows = await sql`
+    SELECT id, name, key_prefix, last_used_at, revoked_at, created_at
+    FROM api_keys
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+  `
+  return rows as unknown as ApiKeyRow[]
+}
+
+export async function getApiKeyByPrefix(keyPrefix: string): Promise<{
+  id: number
+  userId: number
+  keyHash: string
+} | null> {
+  const sql = getDb()
+  const rows = await sql`
+    SELECT id, user_id, key_hash
+    FROM api_keys
+    WHERE key_prefix = ${keyPrefix} AND revoked_at IS NULL
+  `
+  if (rows.length === 0) return null
+  return {
+    id: rows[0].id as number,
+    userId: rows[0].user_id as number,
+    keyHash: rows[0].key_hash as string,
+  }
+}
+
+export async function updateApiKeyLastUsed(id: number): Promise<void> {
+  const sql = getDb()
+  await sql`UPDATE api_keys SET last_used_at = NOW() WHERE id = ${id}`
+}
+
+export async function revokeApiKey(id: number, userId: number): Promise<void> {
+  const sql = getDb()
+  await sql`
+    UPDATE api_keys SET revoked_at = NOW()
+    WHERE id = ${id} AND user_id = ${userId} AND revoked_at IS NULL
+  `
 }
 
 // ── One-time migration: old anonymous app_data → user_data ───────────────────
