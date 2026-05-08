@@ -268,7 +268,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: '#fff0f5' }}>
+    <main className="min-h-screen" style={{ backgroundColor: '#EDE9FF' }}>
       <div className="max-w-lg mx-auto px-4 pb-24">
 
         {/* Header */}
@@ -276,7 +276,7 @@ export default function Home() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-slate-400 font-medium">{formatDate(today)}</p>
-              <h1 className="text-2xl font-bold text-slate-800 mt-0.5">Мои привычки</h1>
+              <h1 className="text-2xl font-bold mt-0.5" style={{ color: '#101585' }}>Ritualr</h1>
               {userName && (
                 <p className="text-xs text-slate-400 mt-0.5">{userName}</p>
               )}
@@ -291,8 +291,8 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => tab === 'anti' ? setShowAntiModal(true) : setShowModal(true)}
-                className={`flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm ${tab === 'anti' ? 'bg-slate-800 hover:bg-slate-900' : 'bg-pink-500 hover:bg-pink-600'}`}
-                style={{ display: tab === 'achievements' ? 'none' : undefined }}
+                className="flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-all shadow-sm hover:opacity-90"
+                style={{ backgroundColor: '#101585', display: tab === 'achievements' ? 'none' : undefined }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -338,10 +338,13 @@ export default function Home() {
                   {Math.round((doneToday / totalHabits) * 100)}%
                 </span>
               </div>
-              <div className="w-full bg-pink-100 rounded-full h-2">
+              <div className="w-full rounded-full h-2" style={{ backgroundColor: 'rgba(167,139,250,0.25)' }}>
                 <div
-                  className="bg-gradient-to-r from-pink-400 to-rose-400 rounded-full h-2 transition-all duration-700"
-                  style={{ width: `${(doneToday / totalHabits) * 100}%` }}
+                  className="rounded-full h-2 transition-all duration-700"
+                  style={{
+                    width: `${(doneToday / totalHabits) * 100}%`,
+                    background: 'linear-gradient(90deg, #A78BFA 0%, #2D22C4 100%)',
+                  }}
                 />
               </div>
             </div>
@@ -350,14 +353,15 @@ export default function Home() {
 
         {/* Save-progress banner for anonymous users */}
         {!isLoggedIn && (
-          <div className="bg-white border border-pink-100 rounded-2xl px-4 py-3.5 mb-4 flex items-center justify-between shadow-sm">
+          <div className="bg-white rounded-2xl px-4 py-3.5 mb-4 flex items-center justify-between shadow-sm" style={{ border: '1px solid rgba(167,139,250,0.3)' }}>
             <div>
-              <p className="text-sm font-semibold text-slate-700">Сохраняй историю</p>
-              <p className="text-xs text-slate-400 mt-0.5">Войди, чтобы данные не потерялись</p>
+              <p className="text-sm font-semibold" style={{ color: '#101585' }}>Сохраняй историю</p>
+              <p className="text-xs mt-0.5" style={{ color: '#A78BFA' }}>Войди, чтобы данные не потерялись</p>
             </div>
             <a
               href="/login"
-              className="flex items-center gap-1.5 bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all hover:opacity-90 whitespace-nowrap"
+              style={{ backgroundColor: '#101585' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
@@ -370,7 +374,7 @@ export default function Home() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-pink-100/60 p-1 rounded-xl mb-4">
+        <div className="flex gap-1 p-1 rounded-xl mb-4" style={{ backgroundColor: 'rgba(16,21,133,0.08)' }}>
           <TabButton active={tab === 'habits'} onClick={() => setTab('habits')}>Привычки</TabButton>
           <TabButton active={tab === 'anti'} onClick={() => setTab('anti')}>Анти</TabButton>
           <TabButton active={tab === 'achievements'} onClick={() => setTab('achievements')}>Достижения</TabButton>
@@ -493,10 +497,16 @@ export default function Home() {
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick}
-      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-        active ? 'bg-white text-pink-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700'
-      }`}>
+    <button
+      onClick={onClick}
+      className="flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+      style={{
+        backgroundColor: active ? '#fff' : 'transparent',
+        color: active ? '#101585' : 'rgba(16,21,133,0.5)',
+        fontWeight: active ? 600 : 400,
+        boxShadow: active ? '0 1px 3px rgba(16,21,133,0.1)' : 'none',
+      }}
+    >
       {children}
     </button>
   )
@@ -504,12 +514,16 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 function ViewToggle({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: string; label: string }) {
   return (
-    <button onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all border ${
-        active
-          ? 'bg-white border-pink-200 text-pink-600 shadow-sm'
-          : 'border-transparent text-slate-400 hover:text-slate-600 hover:bg-white/60'
-      }`}>
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
+      style={{
+        backgroundColor: active ? '#fff' : 'transparent',
+        border: active ? '1px solid rgba(167,139,250,0.4)' : '1px solid transparent',
+        color: active ? '#101585' : 'rgba(16,21,133,0.45)',
+        boxShadow: active ? '0 1px 3px rgba(16,21,133,0.08)' : 'none',
+      }}
+    >
       <span>{icon}</span>
       {label}
     </button>
@@ -525,7 +539,8 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         Добавьте первую привычку и начните отслеживать свой прогресс каждый день
       </p>
       <button onClick={onAdd}
-        className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors">
+        className="flex items-center gap-2 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all hover:opacity-90"
+        style={{ backgroundColor: '#101585' }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>

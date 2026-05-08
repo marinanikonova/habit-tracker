@@ -4,41 +4,28 @@ interface CircleProgressProps {
   percentage: number
   size?: number
   strokeWidth?: number
-  color: string
-}
-
-const colorMap: Record<string, { stroke: string; text: string; bg: string }> = {
-  violet:  { stroke: '#ec4899', text: 'text-pink-500',    bg: 'bg-pink-100' },
-  sky:     { stroke: '#f43f5e', text: 'text-rose-500',    bg: 'bg-rose-100' },
-  teal:    { stroke: '#d946ef', text: 'text-fuchsia-500', bg: 'bg-fuchsia-100' },
-  rose:    { stroke: '#f43f5e', text: 'text-rose-500',    bg: 'bg-rose-100' },
-  amber:   { stroke: '#f59e0b', text: 'text-amber-500',   bg: 'bg-amber-100' },
-  emerald: { stroke: '#ec4899', text: 'text-pink-500',    bg: 'bg-pink-100' },
-  indigo:  { stroke: '#d946ef', text: 'text-fuchsia-500', bg: 'bg-fuchsia-100' },
-  pink:    { stroke: '#ec4899', text: 'text-pink-500',    bg: 'bg-pink-100' },
+  color?: string
 }
 
 export default function CircleProgress({
   percentage,
   size = 48,
   strokeWidth = 4,
-  color,
 }: CircleProgressProps) {
   const radius = (size - strokeWidth * 2) / 2
   const circumference = 2 * Math.PI * radius
   const offset = circumference - (percentage / 100) * circumference
-  const c = colorMap[color] ?? colorMap.violet
 
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="absolute inset-0">
+      <svg width={size} height={size} className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }}>
         {/* Track */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#e2e8f0"
+          stroke="rgba(167,139,250,0.2)"
           strokeWidth={strokeWidth}
         />
         {/* Progress */}
@@ -47,7 +34,7 @@ export default function CircleProgress({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={c.stroke}
+          stroke={percentage >= 100 ? '#101585' : '#A78BFA'}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -55,7 +42,10 @@ export default function CircleProgress({
           className="progress-ring__circle"
         />
       </svg>
-      <span className={`text-xs font-semibold ${c.text} z-10`}>
+      <span
+        className="text-xs font-semibold z-10"
+        style={{ color: percentage >= 100 ? '#101585' : '#A78BFA' }}
+      >
         {Math.round(percentage)}%
       </span>
     </div>

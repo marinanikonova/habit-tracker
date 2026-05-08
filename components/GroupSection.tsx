@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Habit, Group, Frequency } from '@/lib/types'
 import { getExpectedDates } from '@/lib/storage'
 import HabitCard from './HabitCard'
@@ -73,7 +73,8 @@ export default function GroupSection({
             tabIndex={0}
             onClick={() => setOpen(v => !v)}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setOpen(v => !v) }}
-            className={`text-xs font-semibold px-2 py-0.5 rounded-full cursor-pointer ${pctColor(pct)}`}
+            className="text-xs font-semibold px-2 py-0.5 rounded-full cursor-pointer"
+            style={pctColor(pct)}
           >
             {pct}%
           </span>
@@ -131,10 +132,10 @@ export default function GroupSection({
   )
 }
 
-function pctColor(pct: number): string {
-  if (pct >= 80) return 'bg-emerald-100 text-emerald-600'
-  if (pct >= 40) return 'bg-amber-100 text-amber-600'
-  return 'bg-pink-100 text-pink-500'
+function pctColor(pct: number): React.CSSProperties {
+  if (pct >= 80) return { backgroundColor: '#101585', color: '#FFDD44' }
+  if (pct >= 40) return { backgroundColor: 'rgba(167,139,250,0.2)', color: '#2D22C4' }
+  return { backgroundColor: 'rgba(167,139,250,0.12)', color: '#A78BFA' }
 }
 
 function plural(n: number, one: string, few: string, many: string): string {

@@ -105,16 +105,21 @@ function LoginContent() {
   return (
     <main
       className="min-h-screen flex items-center justify-center px-4"
-      style={{ backgroundColor: '#fff0f5' }}
+      style={{ backgroundColor: '#EDE9FF' }}
     >
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🌱</div>
-          <h1 className="text-2xl font-bold text-slate-800">Мои привычки</h1>
-          <p className="text-sm text-slate-500 mt-1">Войди через Telegram, чтобы сохранять историю</p>
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-white text-3xl font-bold mb-4"
+            style={{ background: 'linear-gradient(135deg, #101585 0%, #2D22C4 100%)' }}
+          >
+            R
+          </div>
+          <h1 className="text-2xl font-bold" style={{ color: '#101585' }}>Ritualr</h1>
+          <p className="text-sm mt-1" style={{ color: '#A78BFA' }}>Войди через Telegram, чтобы сохранять историю</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-6">
+        <div className="bg-white rounded-2xl shadow-sm p-6" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
           {status === 'idle' && (
             <>
               <p className="text-sm text-slate-500 mb-5 text-center">
@@ -175,7 +180,8 @@ function LoginContent() {
               </p>
               <button
                 onClick={() => setStatus('idle')}
-                className="text-sm text-pink-500 hover:text-pink-600 font-medium transition-colors"
+                className="text-sm font-medium transition-colors"
+                style={{ color: '#2D22C4' }}
               >
                 Попробовать снова
               </button>

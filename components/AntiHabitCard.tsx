@@ -19,26 +19,29 @@ export default function AntiHabitCard({
 }: AntiHabitCardProps) {
   const [showMenu, setShowMenu] = useState(false)
 
-  const failedToday = antiHabit.failures.includes(today)
-  const cleanToday  = antiHabit.cleanDays.includes(today)
-  const answeredToday = failedToday || cleanToday
-  const streak = calcAntiStreak(antiHabit, today)
+  const failedToday    = antiHabit.failures.includes(today)
+  const cleanToday     = antiHabit.cleanDays.includes(today)
+  const answeredToday  = failedToday || cleanToday
+  const streak         = calcAntiStreak(antiHabit, today)
+  const isMilestone    = streak >= 7
 
   return (
-    <div className="relative rounded-2xl border border-slate-200 bg-white p-4 transition-all duration-300 animate-slide-up">
-
+    <div
+      className="relative rounded-2xl p-4 transition-all duration-300 animate-slide-up"
+      style={{ backgroundColor: '#fff', border: '1px solid rgba(167,139,250,0.25)' }}
+    >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start gap-2.5 min-w-0 flex-1 mr-2">
           <span className="text-xl shrink-0 mt-0.5">🚫</span>
           <div className="min-w-0">
-            <h3 className="font-semibold text-slate-800 text-sm leading-snug break-words">
+            <h3 className="font-semibold text-sm leading-snug break-words" style={{ color: '#101585' }}>
               {antiHabit.name}
             </h3>
             {antiHabit.reason && (
-              <p className="text-xs text-slate-400 mt-0.5 break-words italic">{antiHabit.reason}</p>
+              <p className="text-xs mt-0.5 break-words italic" style={{ color: '#A78BFA' }}>{antiHabit.reason}</p>
             )}
-            <span className="text-[10px] text-slate-400 mt-0.5 block">
+            <span className="text-[10px] mt-0.5 block" style={{ color: '#A78BFA' }}>
               {FREQUENCY_ICONS[antiHabit.frequency]} {FREQUENCY_LABELS[antiHabit.frequency]}
             </span>
           </div>
@@ -48,7 +51,8 @@ export default function AntiHabitCard({
         <div className="relative">
           <button
             onClick={() => setShowMenu(v => !v)}
-            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600"
+            className="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
+            style={{ color: 'rgba(167,139,250,0.5)' }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <circle cx="8" cy="3" r="1.5"/>
@@ -57,7 +61,10 @@ export default function AntiHabitCard({
             </svg>
           </button>
           {showMenu && (
-            <div className="absolute right-0 top-8 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-10 min-w-[160px] animate-scale-in">
+            <div
+              className="absolute right-0 top-8 bg-white rounded-xl shadow-lg py-1 z-10 min-w-[160px] animate-scale-in"
+              style={{ border: '1px solid rgba(167,139,250,0.2)' }}
+            >
               <button onClick={() => { onReset(antiHabit.id); setShowMenu(false) }}
                 className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-2">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -79,18 +86,33 @@ export default function AntiHabitCard({
       </div>
 
       {/* Streak */}
-      <div className={`rounded-xl py-4 mb-3 text-center ${failedToday ? 'bg-rose-50' : streak >= 7 ? 'bg-amber-50' : 'bg-slate-50'}`}>
+      <div
+        className="rounded-xl py-4 mb-3 text-center"
+        style={{
+          backgroundColor: failedToday
+            ? 'rgba(244,63,94,0.06)'
+            : isMilestone
+              ? '#101585'
+              : 'rgba(167,139,250,0.1)',
+        }}
+      >
         {streak > 0 ? (
           <div className="flex items-center justify-center gap-2">
-            <span className="text-2xl">{streak >= 30 ? '🏆' : streak >= 7 ? '🔥' : '🌱'}</span>
-            <span className={`text-4xl font-black leading-none ${failedToday ? 'text-slate-300' : streak >= 7 ? 'text-amber-500' : 'text-slate-700'}`}>
+            <span className="text-2xl">{streak >= 30 ? '🏆' : streak >= 7 ? '⚡' : '🌱'}</span>
+            <span
+              className="text-4xl font-black leading-none"
+              style={{ color: failedToday ? 'rgba(167,139,250,0.35)' : isMilestone ? '#FFDD44' : '#101585' }}
+            >
               {streak}
             </span>
           </div>
         ) : (
           <span className="text-3xl">💤</span>
         )}
-        <p className="text-xs text-slate-400 mt-1.5">
+        <p
+          className="text-xs mt-1.5"
+          style={{ color: isMilestone && !failedToday ? '#A78BFA' : 'rgba(16,21,133,0.45)' }}
+        >
           {streak === 0
             ? 'серии нет — начни сегодня!'
             : plural(streak, 'чистый день', 'чистых дня', 'чистых дней') + ' подряд'}
@@ -99,18 +121,23 @@ export default function AntiHabitCard({
 
       {/* Today's status */}
       {!answeredToday && (
-        <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-          <p className="text-xs font-medium text-slate-500 text-center mb-2.5">Сегодня было?</p>
+        <div
+          className="rounded-xl p-3"
+          style={{ backgroundColor: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.15)' }}
+        >
+          <p className="text-xs font-medium text-center mb-2.5" style={{ color: '#2D22C4' }}>Сегодня было?</p>
           <div className="flex gap-2">
             <button
               onClick={() => onAnswer(antiHabit.id, 'clean')}
-              className="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium transition-colors"
+              className="flex-1 py-2 rounded-xl text-white text-sm font-medium transition-all hover:opacity-90"
+              style={{ backgroundColor: '#101585' }}
             >
               ✓ Нет, чисто
             </button>
             <button
               onClick={() => onAnswer(antiHabit.id, 'failed')}
-              className="flex-1 py-2 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-500 text-sm font-medium transition-colors"
+              className="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
+              style={{ border: '1px solid rgba(244,63,94,0.3)', color: '#f43f5e' }}
             >
               Да, был срыв
             </button>
@@ -119,11 +146,15 @@ export default function AntiHabitCard({
       )}
 
       {cleanToday && (
-        <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2.5 flex items-center justify-between">
-          <span className="text-sm font-medium text-emerald-700">✓ Сегодня чисто!</span>
+        <div
+          className="rounded-xl px-4 py-2.5 flex items-center justify-between"
+          style={{ backgroundColor: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.2)' }}
+        >
+          <span className="text-sm font-medium" style={{ color: '#101585' }}>✓ Сегодня чисто!</span>
           <button
             onClick={() => onUndoAnswer(antiHabit.id)}
-            className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+            className="text-xs transition-colors"
+            style={{ color: '#A78BFA' }}
           >
             Отменить
           </button>
@@ -131,12 +162,13 @@ export default function AntiHabitCard({
       )}
 
       {failedToday && (
-        <div className="bg-rose-50 border border-rose-100 rounded-xl px-4 py-2.5">
+        <div className="rounded-xl px-4 py-2.5" style={{ backgroundColor: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.15)' }}>
           <div className="flex items-center justify-between mb-0.5">
             <span className="text-sm font-medium text-rose-600">😔 Сегодня был срыв</span>
             <button
               onClick={() => onUndoAnswer(antiHabit.id)}
-              className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+              className="text-xs transition-colors"
+              style={{ color: '#A78BFA' }}
             >
               Отменить
             </button>

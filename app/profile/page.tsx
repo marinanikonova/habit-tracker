@@ -137,7 +137,7 @@ function NewKeyModal({
           <button
             onClick={onClose}
             className="w-full py-3 rounded-xl text-sm font-bold text-white transition-colors"
-            style={{ backgroundColor: '#f43f5e' }}
+            style={{ backgroundColor: '#101585' }}
           >
             Я сохранил ключ — закрыть
           </button>
@@ -228,7 +228,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fff0f5' }}>
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#EDE9FF' }}>
         <div className="w-8 h-8 border-2 border-rose-300 border-t-rose-500 rounded-full animate-spin" />
       </main>
     )
@@ -238,15 +238,16 @@ export default function ProfilePage() {
   const revokedKeys = keys.filter(k => k.revoked_at)
 
   return (
-    <main className="min-h-screen pb-20" style={{ backgroundColor: '#fff0f5' }}>
+    <main className="min-h-screen pb-20" style={{ backgroundColor: '#EDE9FF' }}>
       {/* Nav */}
       <nav className="max-w-2xl mx-auto px-6 py-5 flex items-center justify-between">
-        <Link href="/" className="text-lg font-bold text-slate-800">
-          🌱 Мои привычки
+        <Link href="/" className="text-lg font-bold" style={{ color: '#101585' }}>
+          Ritualr
         </Link>
         <Link
           href="/"
-          className="text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors"
+          className="text-sm font-semibold transition-colors"
+          style={{ color: '#A78BFA' }}
         >
           ← К трекеру
         </Link>
@@ -255,28 +256,28 @@ export default function ProfilePage() {
       <div className="max-w-2xl mx-auto px-6 space-y-6">
 
         {/* User card */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-pink-100">
+        <div className="bg-white rounded-3xl p-6 shadow-sm" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
           <div className="flex items-center gap-4">
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #f43f5e 0%, #ec4899 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #101585 0%, #2D22C4 100%)' }}
             >
               {user?.firstName?.[0]?.toUpperCase() ?? '?'}
             </div>
             <div>
-              <p className="text-lg font-bold text-slate-800">{user?.firstName}</p>
-              <p className="text-sm text-slate-400">Telegram ID: {user?.telegramId}</p>
+              <p className="text-lg font-bold" style={{ color: '#101585' }}>{user?.firstName}</p>
+              <p className="text-sm" style={{ color: '#A78BFA' }}>Telegram ID: {user?.telegramId}</p>
             </div>
           </div>
         </div>
 
         {/* MCP intro */}
-        <div className="bg-indigo-50 rounded-3xl p-6 border border-indigo-100">
+        <div className="rounded-3xl p-6" style={{ backgroundColor: 'rgba(45,34,196,0.06)', border: '1px solid rgba(45,34,196,0.12)' }}>
           <div className="flex items-start gap-3">
             <span className="text-2xl">🤖</span>
             <div>
-              <p className="font-semibold text-indigo-800 mb-1">MCP-сервер</p>
-              <p className="text-sm text-indigo-600 leading-relaxed">
+              <p className="font-semibold mb-1" style={{ color: '#101585' }}>MCP-сервер</p>
+              <p className="text-sm leading-relaxed" style={{ color: '#2D22C4' }}>
                 Подключи Claude к своим привычкам через API-ключ. Работает с{' '}
                 <strong>Claude Code</strong> и <strong>Claude Desktop</strong>.
                 Сервер доступен по адресу{' '}
@@ -289,8 +290,8 @@ export default function ProfilePage() {
         </div>
 
         {/* Create key */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-pink-100">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Создать API-ключ</h2>
+        <div className="bg-white rounded-3xl p-6 shadow-sm" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
+          <h2 className="text-lg font-bold mb-4" style={{ color: '#101585' }}>Создать API-ключ</h2>
           <form onSubmit={handleCreateKey} className="flex gap-3">
             <input
               ref={inputRef}
@@ -299,13 +300,14 @@ export default function ProfilePage() {
               onChange={e => setNewKeyName(e.target.value)}
               placeholder='Название, например "Claude Code"'
               maxLength={64}
-              className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-300"
+              className="flex-1 rounded-xl px-4 py-2.5 text-sm placeholder-slate-400 focus:outline-none"
+              style={{ border: '1px solid rgba(167,139,250,0.3)', color: '#101585' }}
             />
             <button
               type="submit"
               disabled={creating || !newKeyName.trim()}
-              className="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50"
-              style={{ backgroundColor: '#f43f5e' }}
+              className="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 hover:opacity-90"
+              style={{ backgroundColor: '#101585' }}
             >
               {creating ? '…' : 'Создать'}
             </button>
@@ -314,23 +316,24 @@ export default function ProfilePage() {
 
         {/* Active keys */}
         {activeKeys.length > 0 && (
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-pink-100">
-            <h2 className="text-lg font-bold text-slate-800 mb-4">
+          <div className="bg-white rounded-3xl p-6 shadow-sm" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
+            <h2 className="text-lg font-bold mb-4" style={{ color: '#101585' }}>
               Активные ключи
-              <span className="ml-2 text-sm font-normal text-slate-400">({activeKeys.length})</span>
+              <span className="ml-2 text-sm font-normal" style={{ color: '#A78BFA' }}>({activeKeys.length})</span>
             </h2>
             <div className="space-y-3">
               {activeKeys.map(k => (
                 <div
                   key={k.id}
-                  className="flex items-start justify-between gap-4 py-3 border-b border-slate-50 last:border-0"
+                  className="flex items-start justify-between gap-4 py-3 last:border-0"
+                  style={{ borderBottom: '1px solid rgba(167,139,250,0.1)' }}
                 >
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-700 text-sm truncate">{k.name}</p>
-                    <p className="text-xs font-mono text-slate-400 mt-0.5">
+                    <p className="font-semibold text-sm truncate" style={{ color: '#101585' }}>{k.name}</p>
+                    <p className="text-xs font-mono mt-0.5" style={{ color: '#A78BFA' }}>
                       {maskPrefix(k.key_prefix)}
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs mt-0.5" style={{ color: '#A78BFA' }}>
                       Создан {formatDate(k.created_at)}
                       {k.last_used_at && ` · Использован ${formatDate(k.last_used_at)}`}
                     </p>
@@ -338,7 +341,8 @@ export default function ProfilePage() {
                   <button
                     onClick={() => handleRevoke(k.id)}
                     disabled={revoking === k.id}
-                    className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-500 hover:bg-rose-50 border border-rose-200 transition-colors disabled:opacity-50"
+                    className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50"
+                    style={{ border: '1px solid rgba(244,63,94,0.25)' }}
                   >
                     {revoking === k.id ? '…' : 'Отозвать'}
                   </button>
@@ -350,17 +354,17 @@ export default function ProfilePage() {
 
         {/* Empty state */}
         {activeKeys.length === 0 && (
-          <div className="text-center py-8 text-slate-400 text-sm">
+          <div className="text-center py-8 text-sm" style={{ color: '#A78BFA' }}>
             Нет активных ключей — создай первый выше
           </div>
         )}
 
         {/* Revoked keys (collapsed) */}
         {revokedKeys.length > 0 && (
-          <details className="bg-white rounded-3xl shadow-sm border border-pink-100 overflow-hidden">
-            <summary className="px-6 py-4 cursor-pointer text-sm font-semibold text-slate-500 hover:text-slate-700 list-none flex items-center justify-between">
+          <details className="bg-white rounded-3xl shadow-sm overflow-hidden" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
+            <summary className="px-6 py-4 cursor-pointer text-sm font-semibold list-none flex items-center justify-between" style={{ color: '#A78BFA' }}>
               <span>Отозванные ключи ({revokedKeys.length})</span>
-              <span className="text-slate-300">▾</span>
+              <span style={{ color: 'rgba(167,139,250,0.4)' }}>▾</span>
             </summary>
             <div className="px-6 pb-5 space-y-3">
               {revokedKeys.map(k => (
