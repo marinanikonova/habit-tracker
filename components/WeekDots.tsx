@@ -2,8 +2,10 @@
 
 import { Frequency } from '@/lib/types'
 import { getExpectedDates } from '@/lib/storage'
+import { useLanguage } from '@/lib/LanguageContext'
 
-const DAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+const DAY_LABELS_RU = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+const DAY_LABELS_EN = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 
 interface WeekDotsProps {
   weekDates: string[]
@@ -13,6 +15,8 @@ interface WeekDotsProps {
 }
 
 export default function WeekDots({ weekDates, completions, frequency }: WeekDotsProps) {
+  const { lang } = useLanguage()
+  const DAY_LABELS = lang === 'en' ? DAY_LABELS_EN : DAY_LABELS_RU
   const today = new Date().toISOString().split('T')[0]
   const expectedDates = new Set(getExpectedDates(weekDates, frequency))
 
