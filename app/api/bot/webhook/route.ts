@@ -57,7 +57,7 @@ export async function POST(req: Request) {
         username: user.username,
       })
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://habit-tracker-ebon-alpha.vercel.app'
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ritualr.vercel.app'
 
       await tg('answerCallbackQuery', {
         callback_query_id: cq.id,

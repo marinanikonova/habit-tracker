@@ -100,7 +100,7 @@ A: Начни без входа прямо сейчас — данные сох�
 
 [CTA: Открыть трекер — это бесплатно]
 
-https://habit-tracker-ebon-alpha.vercel.app
+https://ritualr.vercel.app
 
 ---
 
