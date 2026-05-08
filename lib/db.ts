@@ -265,7 +265,7 @@ export async function upsertGoogleUser(data: {
       ${data.lastName ?? null},
       ${data.photoUrl ?? null}
     )
-    ON CONFLICT (google_id) DO UPDATE SET
+    ON CONFLICT (google_id) WHERE google_id IS NOT NULL DO UPDATE SET
       email         = EXCLUDED.email,
       first_name    = EXCLUDED.first_name,
       last_name     = EXCLUDED.last_name,
