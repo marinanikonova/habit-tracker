@@ -27,9 +27,15 @@ export async function ensureSchema() {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name     TEXT`.catch(() => {})
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS username      TEXT`.catch(() => {})
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url     TEXT`.catch(() => {})
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id     TEXT`.catch(() => {})
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email         TEXT`.catch(() => {})
   await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS users_telegram_id_idx
     ON users(telegram_id) WHERE telegram_id IS NOT NULL
+  `.catch(() => {})
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS users_google_id_idx
+    ON users(google_id) WHERE google_id IS NOT NULL
   `.catch(() => {})
 
   await sql`
@@ -238,6 +244,36 @@ export async function revokeApiKey(id: number, userId: number): Promise<void> {
     UPDATE api_keys SET revoked_at = NOW()
     WHERE id = ${id} AND user_id = ${userId} AND revoked_at IS NULL
   `
+}
+
+// ── Google users ──────────────────────────────────────────────────────────────
+
+export async function upsertGoogleUser(data: {
+  googleId: string
+  email: string
+  firstName: string
+  lastName?: string
+  photoUrl?: string
+}): Promise<{ id: number }> {
+  const sql = getDb()
+  const rows = await sql`
+    INSERT INTO users (google_id, email, first_name, last_name, photo_url)
+    VALUES (
+      ${data.googleId},
+      ${data.email},
+      ${data.firstName},
+      ${data.lastName ?? null},
+      ${data.photoUrl ?? null}
+    )
+    ON CONFLICT (google_id) DO UPDATE SET
+      email         = EXCLUDED.email,
+      first_name    = EXCLUDED.first_name,
+      last_name     = EXCLUDED.last_name,
+      photo_url     = EXCLUDED.photo_url,
+      last_login_at = NOW()
+    RETURNING id
+  `
+  return { id: rows[0].id as number }
 }
 
 // ── One-time migration: old anonymous app_data → user_data ───────────────────
