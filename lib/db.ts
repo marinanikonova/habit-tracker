@@ -29,6 +29,7 @@ export async function ensureSchema() {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url     TEXT`.catch(() => {})
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id     TEXT`.catch(() => {})
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email         TEXT`.catch(() => {})
+  await sql`ALTER TABLE users ALTER COLUMN phone_number DROP NOT NULL`.catch(() => {})
   await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS users_telegram_id_idx
     ON users(telegram_id) WHERE telegram_id IS NOT NULL
