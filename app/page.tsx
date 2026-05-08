@@ -1,17 +1,20 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Habit, Group, Frequency, FREQUENCY_LABELS, FREQUENCY_ICONS, AntiHabit } from '@/lib/types'
+import { Habit, Group, Frequency, FREQUENCY_ICONS, AntiHabit } from '@/lib/types'
+import { getFrequencyLabel } from '@/lib/i18n'
 import {
   loadHabits, saveHabits, loadGroups, saveGroups, loadAntiHabits, saveAntiHabits,
   getTodayString, getWeekDates, getExpectedDates,
 } from '@/lib/storage'
 import { useReminders } from '@/lib/hooks/useReminders'
+import { useLanguage } from '@/lib/LanguageContext'
 import GroupSection from '@/components/GroupSection'
 import AchievementsSection from '@/components/AchievementsSection'
 import AddHabitModal from '@/components/AddHabitModal'
 import AddAntiHabitModal from '@/components/AddAntiHabitModal'
 import AntiHabitsSection from '@/components/AntiHabitsSection'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 type Tab = 'habits' | 'anti' | 'achievements'
 type ViewMode = 'by-group' | 'by-frequency'
@@ -19,6 +22,8 @@ type ViewMode = 'by-group' | 'by-frequency'
 const FREQUENCIES: Frequency[] = ['daily', 'weekdays', 'weekends', 'weekly']
 
 export default function Home() {
+  const { t, lang } = useLanguage()
+
   const [habits, setHabits] = useState<Habit[]>([])
   const [groups, setGroups] = useState<Group[]>([])
   const [antiHabits, setAntiHabits] = useState<AntiHabit[]>([])
@@ -275,7 +280,7 @@ export default function Home() {
         <header className="pt-10 pb-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-slate-400 font-medium">{formatDate(today)}</p>
+              <p className="text-sm text-slate-400 font-medium">{formatDate(today, lang)}</p>
               <h1 className="text-2xl font-bold mt-0.5" style={{ color: '#101585' }}>Ritualr</h1>
               {userName && (
                 <p className="text-xs text-slate-400 mt-0.5">{userName}</p>
@@ -283,12 +288,13 @@ export default function Home() {
               {totalHabits > 0 && (
                 <p className="text-sm text-slate-500 mt-1">
                   {doneToday === totalHabits
-                    ? '🎉 Все привычки выполнены!'
-                    : `Выполнено ${doneToday} из ${totalHabits} сегодня`}
+                    ? t('allDone')
+                    : t('doneToday').replace('{done}', String(doneToday)).replace('{total}', String(totalHabits))}
                 </p>
               )}
             </div>
             <div className="flex items-center gap-2">
+              <LanguageSwitcher />
               <button
                 onClick={() => tab === 'anti' ? setShowAntiModal(true) : setShowModal(true)}
                 className="flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-all shadow-sm hover:opacity-90"
@@ -297,13 +303,13 @@ export default function Home() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
-                Добавить
+                {t('add')}
               </button>
               {isLoggedIn && (
                 <>
                   <a
                     href="/profile"
-                    title="Профиль и API-ключи"
+                    title={t('profile')}
                     className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-pink-100 text-slate-400 hover:text-slate-600 transition-colors"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -316,7 +322,7 @@ export default function Home() {
                       await fetch('/api/auth/logout', { method: 'POST' })
                       window.location.reload()
                     }}
-                    title="Выйти"
+                    title={t('logout')}
                     className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-pink-100 text-slate-400 hover:text-slate-600 transition-colors"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -333,7 +339,7 @@ export default function Home() {
           {totalHabits > 0 && (
             <div className="mt-4">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-slate-500">Прогресс дня</span>
+                <span className="text-xs text-slate-500">{t('dayProgress')}</span>
                 <span className="text-xs font-semibold text-pink-500">
                   {Math.round((doneToday / totalHabits) * 100)}%
                 </span>
@@ -355,8 +361,8 @@ export default function Home() {
         {!isLoggedIn && (
           <div className="bg-white rounded-2xl px-4 py-3.5 mb-4 flex items-center justify-between shadow-sm" style={{ border: '1px solid rgba(167,139,250,0.3)' }}>
             <div>
-              <p className="text-sm font-semibold" style={{ color: '#101585' }}>Сохраняй историю</p>
-              <p className="text-xs mt-0.5" style={{ color: '#A78BFA' }}>Войди, чтобы данные не потерялись</p>
+              <p className="text-sm font-semibold" style={{ color: '#101585' }}>{t('saveHistory')}</p>
+              <p className="text-xs mt-0.5" style={{ color: '#A78BFA' }}>{t('loginPrompt')}</p>
             </div>
             <a
               href="/login"
@@ -368,16 +374,16 @@ export default function Home() {
                 <polyline points="10 17 15 12 10 7"/>
                 <line x1="15" y1="12" x2="3" y2="12"/>
               </svg>
-              Войти
+              {t('login')}
             </a>
           </div>
         )}
 
         {/* Tabs */}
         <div className="flex gap-1 p-1 rounded-xl mb-4" style={{ backgroundColor: 'rgba(16,21,133,0.08)' }}>
-          <TabButton active={tab === 'habits'} onClick={() => setTab('habits')}>Привычки</TabButton>
-          <TabButton active={tab === 'anti'} onClick={() => setTab('anti')}>Анти</TabButton>
-          <TabButton active={tab === 'achievements'} onClick={() => setTab('achievements')}>Достижения</TabButton>
+          <TabButton active={tab === 'habits'} onClick={() => setTab('habits')}>{t('tabHabits')}</TabButton>
+          <TabButton active={tab === 'anti'} onClick={() => setTab('anti')}>{t('tabAnti')}</TabButton>
+          <TabButton active={tab === 'achievements'} onClick={() => setTab('achievements')}>{t('tabAchievements')}</TabButton>
         </div>
 
         {/* ── Habits tab ─────────────────────────────────────────────────────── */}
@@ -386,18 +392,18 @@ export default function Home() {
             {habits.length > 0 && (
               /* View-mode toggle */
               <div className="flex items-center gap-2 mb-5">
-                <span className="text-xs text-slate-400 mr-1">Вид:</span>
+                <span className="text-xs text-slate-400 mr-1">{t('viewBy')}</span>
                 <ViewToggle
                   active={viewMode === 'by-group'}
                   onClick={() => setViewMode('by-group')}
                   icon="🗂️"
-                  label="По группам"
+                  label={t('byGroup')}
                 />
                 <ViewToggle
                   active={viewMode === 'by-frequency'}
                   onClick={() => setViewMode('by-frequency')}
                   icon="⏱️"
-                  label="По частоте"
+                  label={t('byFrequency')}
                 />
               </div>
             )}
@@ -441,7 +447,7 @@ export default function Home() {
                 return (
                   <GroupSection
                     key={f}
-                    group={{ id: f, name: FREQUENCY_LABELS[f], emoji: FREQUENCY_ICONS[f] }}
+                    group={{ id: f, name: getFrequencyLabel(f, lang), emoji: FREQUENCY_ICONS[f] }}
                     habits={fHabits}
                     weekDates={weekDates}
                     today={today}
@@ -531,12 +537,13 @@ function ViewToggle({ active, onClick, icon, label }: { active: boolean; onClick
 }
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
+  const { t } = useLanguage()
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
       <div className="text-5xl mb-4">🌱</div>
-      <h3 className="text-lg font-semibold text-slate-700 mb-2">Нет привычек</h3>
+      <h3 className="text-lg font-semibold text-slate-700 mb-2">{t('noHabits')}</h3>
       <p className="text-sm text-slate-400 mb-6 max-w-xs">
-        Добавьте первую привычку и начните отслеживать свой прогресс каждый день
+        {t('noHabitsDesc')}
       </p>
       <button onClick={onAdd}
         className="flex items-center gap-2 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all hover:opacity-90"
@@ -544,14 +551,14 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
-        Добавить первую привычку
+        {t('addFirstHabit')}
       </button>
     </div>
   )
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('ru-RU', {
+function formatDate(dateStr: string, lang: string): string {
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', {
     weekday: 'long', day: 'numeric', month: 'long',
   })
 }

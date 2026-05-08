@@ -2,10 +2,13 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useLanguage } from '@/lib/LanguageContext'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useLanguage()
   const [googleError, setGoogleError] = useState('')
 
   // Redirect if already logged in
@@ -16,8 +19,8 @@ function LoginContent() {
   // Show error from Google OAuth redirect
   useEffect(() => {
     const err = searchParams.get('error')
-    if (err) setGoogleError('Не удалось войти через Google. Попробуй ещё раз.')
-  }, [searchParams])
+    if (err) setGoogleError(t('googleError'))
+  }, [searchParams, t])
 
   return (
     <main
@@ -25,6 +28,9 @@ function LoginContent() {
       style={{ backgroundColor: '#EDE9FF' }}
     >
       <div className="w-full max-w-sm">
+        <div className="flex justify-end mb-4">
+          <LanguageSwitcher />
+        </div>
         <div className="text-center mb-8">
           <div
             className="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-white text-3xl font-bold mb-4"
@@ -33,7 +39,7 @@ function LoginContent() {
             R
           </div>
           <h1 className="text-2xl font-bold" style={{ color: '#101585' }}>Ritualr</h1>
-          <p className="text-sm mt-1" style={{ color: '#A78BFA' }}>Войди, чтобы сохранять историю на всех устройствах</p>
+          <p className="text-sm mt-1" style={{ color: '#A78BFA' }}>{t('subtitle')}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
@@ -52,7 +58,7 @@ function LoginContent() {
             style={{ backgroundColor: '#fff', border: '1px solid rgba(0,0,0,0.12)', color: '#3c4043' }}
           >
             <GoogleIcon />
-            Войти через Google
+            {t('loginWithGoogle')}
           </a>
 
         </div>

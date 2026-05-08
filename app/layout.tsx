@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { LanguageProvider } from '@/lib/LanguageContext'
 
 export const metadata: Metadata = {
   title: 'Трекер привычек',
@@ -13,7 +14,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body className="min-h-screen" style={{backgroundColor: '#fff0f5'}}>{children}</body>
+      <body className="min-h-screen" style={{backgroundColor: '#fff0f5'}}>
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
+      </body>
     </html>
   )
 }

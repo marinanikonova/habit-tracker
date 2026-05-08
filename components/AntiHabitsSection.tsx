@@ -2,6 +2,7 @@
 
 import { AntiHabit, Frequency } from '@/lib/types'
 import { getExpectedDates, getPreviousWeekDates } from '@/lib/storage'
+import { useLanguage } from '@/lib/LanguageContext'
 import AntiHabitCard from './AntiHabitCard'
 
 interface AntiHabitsSectionProps {
@@ -48,6 +49,7 @@ export default function AntiHabitsSection({
 // ── Weekly stats ──────────────────────────────────────────────────────────────
 
 function WeeklyStatsCard({ antiHabits, weekDates }: { antiHabits: AntiHabit[]; weekDates: string[] }) {
+  const { t } = useLanguage()
   const prevWeekDates = getPreviousWeekDates()
 
   const rows = antiHabits.map(ah => {
@@ -82,7 +84,7 @@ function WeeklyStatsCard({ antiHabits, weekDates }: { antiHabits: AntiHabit[]; w
   return (
     <div className="bg-white rounded-2xl p-4 mb-5" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
       <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-        📊 Итоги недели
+        {t('weekResults')}
       </h3>
 
       <div className="space-y-3">
@@ -113,7 +115,7 @@ function WeeklyStatsCard({ antiHabits, weekDates }: { antiHabits: AntiHabit[]; w
 
       {rows.length > 1 && (
         <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-xs text-slate-500">Итого чистых дней</span>
+          <span className="text-xs text-slate-500">{t('totalCleanDays')}</span>
           <span className={`text-xs font-bold ${pctText(totalPct)}`}>
             {totalClean}/{totalExpected} · {totalPct}%
           </span>
@@ -126,12 +128,13 @@ function WeeklyStatsCard({ antiHabits, weekDates }: { antiHabits: AntiHabit[]; w
 // ── Empty state ───────────────────────────────────────────────────────────────
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
+  const { t } = useLanguage()
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
       <div className="text-5xl mb-4">🚫</div>
-      <h3 className="text-lg font-semibold text-slate-700 mb-2">Нет анти-привычек</h3>
+      <h3 className="text-lg font-semibold text-slate-700 mb-2">{t('noAntiHabits')}</h3>
       <p className="text-sm text-slate-400 mb-6 max-w-xs">
-        Добавь то, от чего хочешь отказаться — соцсети, сахар, поздний сон — и следи за чистой серией
+        {t('noAntiHabitsDesc')}
       </p>
       <button
         onClick={onAdd}
@@ -141,7 +144,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
-        Добавить анти-привычку
+        {t('addAntiHabit')}
       </button>
     </div>
   )

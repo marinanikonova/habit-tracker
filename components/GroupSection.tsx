@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { Habit, Group, Frequency } from '@/lib/types'
 import { getExpectedDates } from '@/lib/storage'
+import { useLanguage } from '@/lib/LanguageContext'
 import HabitCard from './HabitCard'
 
 interface GroupSectionProps {
@@ -30,6 +31,7 @@ export default function GroupSection({
   onUpdateHabit,
   onDeleteGroup,
 }: GroupSectionProps) {
+  const { t, lang } = useLanguage()
   const [open, setOpen] = useState(true)
 
   if (habits.length === 0) return null
@@ -45,6 +47,10 @@ export default function GroupSection({
 
   const doneToday = habits.filter(h => h.completions.includes(today)).length
 
+  const habitWord = lang === 'ru'
+    ? plural(habits.length, t('habit_one'), t('habit_few'), t('habit_many'))
+    : habits.length === 1 ? t('habit_one') : t('habit_many')
+
   return (
     <div className="mb-5 animate-fade-in">
       {/* Group header */}
@@ -59,10 +65,10 @@ export default function GroupSection({
         >
           <span className="text-xl">{group?.emoji ?? '📋'}</span>
           <span className="font-semibold text-slate-700 text-sm">
-            {group?.name ?? 'Без группы'}
+            {group?.name ?? t('ungrouped')}
           </span>
           <span className="text-xs text-slate-400 font-normal">
-            {habits.length} {plural(habits.length, 'привычка', 'привычки', 'привычек')}
+            {habits.length} {habitWord}
           </span>
         </div>
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export const metadata: Metadata = {
   title: 'Ritualr — The art of showing up',
@@ -41,13 +42,16 @@ export default function LandingPage() {
       <nav style={{ backgroundColor: '#101585' }} className="sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
           <span className="text-lg font-bold text-white tracking-tight">Ritualr</span>
-          <Link
-            href="/"
-            className="text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:opacity-90"
-            style={{ backgroundColor: '#FFDD44', color: '#101585' }}
-          >
-            Открыть приложение
-          </Link>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <Link
+              href="/"
+              className="text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:opacity-90"
+              style={{ backgroundColor: '#FFDD44', color: '#101585' }}
+            >
+              Открыть приложение
+            </Link>
+          </div>
         </div>
       </nav>
 

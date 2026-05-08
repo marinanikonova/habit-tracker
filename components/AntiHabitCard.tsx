@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { AntiHabit, FREQUENCY_LABELS, FREQUENCY_ICONS } from '@/lib/types'
+import { AntiHabit, FREQUENCY_ICONS } from '@/lib/types'
+import { getFrequencyLabel } from '@/lib/i18n'
 import { calcAntiStreak } from '@/lib/storage'
+import { useLanguage } from '@/lib/LanguageContext'
 
 interface AntiHabitCardProps {
   antiHabit: AntiHabit
@@ -17,6 +19,7 @@ export default function AntiHabitCard({
   antiHabit, today,
   onAnswer, onUndoAnswer, onDelete, onReset,
 }: AntiHabitCardProps) {
+  const { t, lang } = useLanguage()
   const [showMenu, setShowMenu] = useState(false)
 
   const failedToday    = antiHabit.failures.includes(today)
@@ -24,6 +27,13 @@ export default function AntiHabitCard({
   const answeredToday  = failedToday || cleanToday
   const streak         = calcAntiStreak(antiHabit, today)
   const isMilestone    = streak >= 7
+
+  const streakLabel = streak === 0
+    ? t('noStreak')
+    : (lang === 'ru'
+        ? plural(streak, t('cleanDays_one'), t('cleanDays_few'), t('cleanDays_many'))
+        : streak === 1 ? t('cleanDays_one') : t('cleanDays_many')
+      ) + ' ' + t('inARow')
 
   return (
     <div
@@ -42,7 +52,7 @@ export default function AntiHabitCard({
               <p className="text-xs mt-0.5 break-words italic" style={{ color: '#A78BFA' }}>{antiHabit.reason}</p>
             )}
             <span className="text-[10px] mt-0.5 block" style={{ color: '#A78BFA' }}>
-              {FREQUENCY_ICONS[antiHabit.frequency]} {FREQUENCY_LABELS[antiHabit.frequency]}
+              {FREQUENCY_ICONS[antiHabit.frequency]} {getFrequencyLabel(antiHabit.frequency, lang)}
             </span>
           </div>
         </div>
@@ -70,7 +80,7 @@ export default function AntiHabitCard({
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
                 </svg>
-                Сбросить серию
+                {t('resetStreak')}
               </button>
               <button onClick={() => { onDelete(antiHabit.id); setShowMenu(false) }}
                 className="w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 flex items-center gap-2">
@@ -78,7 +88,7 @@ export default function AntiHabitCard({
                   <polyline points="3 6 5 6 21 6"/>
                   <path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
                 </svg>
-                Удалить
+                {t('delete')}
               </button>
             </div>
           )}
@@ -113,9 +123,7 @@ export default function AntiHabitCard({
           className="text-xs mt-1.5"
           style={{ color: isMilestone && !failedToday ? '#A78BFA' : 'rgba(16,21,133,0.45)' }}
         >
-          {streak === 0
-            ? 'серии нет — начни сегодня!'
-            : plural(streak, 'чистый день', 'чистых дня', 'чистых дней') + ' подряд'}
+          {streakLabel}
         </p>
       </div>
 
@@ -125,21 +133,21 @@ export default function AntiHabitCard({
           className="rounded-xl p-3"
           style={{ backgroundColor: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.15)' }}
         >
-          <p className="text-xs font-medium text-center mb-2.5" style={{ color: '#2D22C4' }}>Сегодня было?</p>
+          <p className="text-xs font-medium text-center mb-2.5" style={{ color: '#2D22C4' }}>{t('todayQuestion')}</p>
           <div className="flex gap-2">
             <button
               onClick={() => onAnswer(antiHabit.id, 'clean')}
               className="flex-1 py-2 rounded-xl text-white text-sm font-medium transition-all hover:opacity-90"
               style={{ backgroundColor: '#101585' }}
             >
-              ✓ Нет, чисто
+              {t('noClear')}
             </button>
             <button
               onClick={() => onAnswer(antiHabit.id, 'failed')}
               className="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
               style={{ border: '1px solid rgba(244,63,94,0.3)', color: '#f43f5e' }}
             >
-              Да, был срыв
+              {t('yesFailed')}
             </button>
           </div>
         </div>
@@ -150,13 +158,13 @@ export default function AntiHabitCard({
           className="rounded-xl px-4 py-2.5 flex items-center justify-between"
           style={{ backgroundColor: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.2)' }}
         >
-          <span className="text-sm font-medium" style={{ color: '#101585' }}>✓ Сегодня чисто!</span>
+          <span className="text-sm font-medium" style={{ color: '#101585' }}>{t('cleanToday')}</span>
           <button
             onClick={() => onUndoAnswer(antiHabit.id)}
             className="text-xs transition-colors"
             style={{ color: '#A78BFA' }}
           >
-            Отменить
+            {t('undo')}
           </button>
         </div>
       )}
@@ -164,16 +172,16 @@ export default function AntiHabitCard({
       {failedToday && (
         <div className="rounded-xl px-4 py-2.5" style={{ backgroundColor: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.15)' }}>
           <div className="flex items-center justify-between mb-0.5">
-            <span className="text-sm font-medium text-rose-600">😔 Сегодня был срыв</span>
+            <span className="text-sm font-medium text-rose-600">{t('failedToday')}</span>
             <button
               onClick={() => onUndoAnswer(antiHabit.id)}
               className="text-xs transition-colors"
               style={{ color: '#A78BFA' }}
             >
-              Отменить
+              {t('undo')}
             </button>
           </div>
-          <p className="text-xs text-rose-400">Ничего страшного — завтра новая попытка 💙</p>
+          <p className="text-xs text-rose-400">{t('noWorries')}</p>
         </div>
       )}
 

@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Frequency, FREQUENCY_LABELS, FREQUENCY_ICONS, Group, Habit } from '@/lib/types'
+import { Frequency, FREQUENCY_ICONS, Group, Habit } from '@/lib/types'
+import { getFrequencyLabel } from '@/lib/i18n'
+import { useLanguage } from '@/lib/LanguageContext'
 
 interface AddHabitModalProps {
   groups: Group[]
@@ -31,6 +33,7 @@ const colorDotMap: Record<string, string> = {
 }
 
 export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup, onClose }: AddHabitModalProps) {
+  const { t, lang } = useLanguage()
   const isEdit = !!initialHabit
 
   const [name, setName]         = useState(initialHabit?.name      ?? '')
@@ -66,7 +69,7 @@ export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 shrink-0" style={{ borderBottom: '1px solid rgba(167,139,250,0.2)' }}>
           <h2 className="text-lg font-bold" style={{ color: '#101585' }}>
-            {isEdit ? 'Редактировать привычку' : 'Новая привычка'}
+            {isEdit ? t('editHabit') : t('newHabit')}
           </h2>
           <button
             onClick={onClose}
@@ -82,12 +85,12 @@ export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-5 overflow-y-auto">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: '#2D22C4' }}>Название</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: '#2D22C4' }}>{t('habitName')}</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder={isEdit ? '' : 'Например: Утренняя медитация'}
+              placeholder={isEdit ? '' : t('habitNamePlaceholder')}
               maxLength={50}
               autoFocus
               className="w-full px-4 py-2.5 rounded-xl text-sm placeholder-slate-400 focus:outline-none transition-all"
@@ -103,7 +106,7 @@ export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup
 
           {/* Emoji */}
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: '#2D22C4' }}>Иконка</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: '#2D22C4' }}>{t('habitIcon')}</label>
             <div className="grid grid-cols-8 gap-1.5">
               {EMOJIS.map(e => (
                 <button key={e} type="button" onClick={() => setEmoji(e)}
@@ -121,7 +124,7 @@ export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup
 
           {/* Color */}
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: '#2D22C4' }}>Цвет</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: '#2D22C4' }}>{t('habitColor')}</label>
             <div className="flex gap-2 flex-wrap">
               {COLORS.map(c => (
                 <button
@@ -140,7 +143,7 @@ export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup
 
           {/* Frequency */}
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: '#2D22C4' }}>Частота</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: '#2D22C4' }}>{t('habitFrequency')}</label>
             <div className="grid grid-cols-4 gap-2">
               {FREQUENCIES.map(f => (
                 <button key={f} type="button" onClick={() => setFrequency(f)}
@@ -152,7 +155,7 @@ export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup
                   }}>
                   <span className="text-xl">{FREQUENCY_ICONS[f]}</span>
                   <span className="text-[11px] leading-tight font-medium">
-                    {FREQUENCY_LABELS[f]}
+                    {getFrequencyLabel(f, lang)}
                   </span>
                 </button>
               ))}
@@ -161,7 +164,7 @@ export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup
 
           {/* Group */}
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: '#2D22C4' }}>Группа</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: '#2D22C4' }}>{t('habitGroup')}</label>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => setGroupId(null)}
                 className="px-3 py-1.5 rounded-xl text-sm transition-all"
@@ -171,7 +174,7 @@ export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup
                   color: groupId === null ? '#101585' : '#A78BFA',
                   fontWeight: groupId === null ? 600 : 400,
                 }}>
-                Без группы
+                {t('noGroup')}
               </button>
 
               {groups.map(g => (
@@ -195,7 +198,7 @@ export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                   </svg>
-                  Новая группа
+                  {t('newGroup')}
                 </button>
               )}
             </div>
@@ -205,7 +208,7 @@ export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup
                 className="mt-3 p-3 rounded-xl animate-scale-in"
                 style={{ backgroundColor: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)' }}
               >
-                <p className="text-xs font-medium mb-2" style={{ color: '#2D22C4' }}>Новая группа</p>
+                <p className="text-xs font-medium mb-2" style={{ color: '#2D22C4' }}>{t('newGroupLabel')}</p>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {GROUP_EMOJIS.map(e => (
                     <button key={e} type="button" onClick={() => setNewGroupEmoji(e)}
@@ -224,7 +227,7 @@ export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup
                     value={newGroupName}
                     onChange={e => setNewGroupName(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleCreateGroup())}
-                    placeholder="Название группы"
+                    placeholder={t('groupNamePlaceholder')}
                     maxLength={30}
                     autoFocus
                     className="flex-1 px-3 py-1.5 rounded-lg text-sm bg-white focus:outline-none"
@@ -251,12 +254,12 @@ export default function AddHabitModal({ groups, initialHabit, onSave, onAddGroup
             <button type="button" onClick={onClose}
               className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors"
               style={{ border: '1px solid rgba(167,139,250,0.3)', color: '#A78BFA' }}>
-              Отмена
+              {t('cancel')}
             </button>
             <button type="submit" disabled={!name.trim()}
               className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90"
               style={{ backgroundColor: '#101585' }}>
-              {isEdit ? 'Сохранить' : 'Добавить'}
+              {isEdit ? t('save') : t('add')}
             </button>
           </div>
         </form>

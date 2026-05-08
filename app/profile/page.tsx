@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/LanguageContext'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 interface ApiKey {
   id: number
@@ -30,9 +32,9 @@ function maskPrefix(prefix: string): string {
   return prefix.slice(0, 7) + '••••••'
 }
 
-function formatDate(iso: string | null): string {
+function formatDate(iso: string | null, lang: string): string {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('ru-RU', {
+  return new Date(iso).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -50,6 +52,7 @@ function NewKeyModal({
   origin: string
   onClose: () => void
 }) {
+  const { t } = useLanguage()
   const [copiedKey, setCopiedKey]    = useState(false)
   const [copiedCfg, setCopiedCfg]    = useState(false)
 
@@ -77,9 +80,9 @@ function NewKeyModal({
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-100">
           <div className="text-2xl mb-1">🔑</div>
-          <h2 className="text-xl font-bold text-slate-800">Ключ создан</h2>
+          <h2 className="text-xl font-bold text-slate-800">{t('keyCreated')}</h2>
           <p className="text-sm text-rose-500 font-medium mt-1">
-            Сохрани его сейчас — он больше не будет показан
+            {t('saveKeyWarning')}
           </p>
         </div>
 
@@ -87,7 +90,7 @@ function NewKeyModal({
           {/* Full key */}
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-              API-ключ
+              {t('apiKeyLabel')}
             </p>
             <div className="flex items-center gap-2">
               <code className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 break-all">
@@ -101,7 +104,7 @@ function NewKeyModal({
                   color: '#fff',
                 }}
               >
-                {copiedKey ? '✓ Скопировано' : 'Копировать'}
+                {copiedKey ? t('copied') : t('copy')}
               </button>
             </div>
           </div>
@@ -109,7 +112,7 @@ function NewKeyModal({
           {/* MCP config */}
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-              MCP-конфиг (Claude Code / Claude Desktop)
+              {t('mcpConfigLabel')}
             </p>
             <div className="relative">
               <pre className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono text-slate-700 overflow-x-auto whitespace-pre-wrap break-all">
@@ -123,11 +126,11 @@ function NewKeyModal({
                   color: '#fff',
                 }}
               >
-                {copiedCfg ? '✓' : 'Копировать'}
+                {copiedCfg ? '✓' : t('copy')}
               </button>
             </div>
             <p className="text-xs text-slate-400 mt-2">
-              Вставь этот фрагмент в ~/.claude.json (Claude Code) или в настройки MCP Claude Desktop
+              {t('mcpConfigHint')}
             </p>
           </div>
         </div>
@@ -139,7 +142,7 @@ function NewKeyModal({
             className="w-full py-3 rounded-xl text-sm font-bold text-white transition-colors"
             style={{ backgroundColor: '#101585' }}
           >
-            Я сохранил ключ — закрыть
+            {t('savedClose')}
           </button>
         </div>
       </div>
@@ -151,6 +154,7 @@ function NewKeyModal({
 
 export default function ProfilePage() {
   const router = useRouter()
+  const { t, lang } = useLanguage()
 
   const [user, setUser]           = useState<User | null>(null)
   const [keys, setKeys]           = useState<ApiKey[]>([])
@@ -201,7 +205,7 @@ export default function ProfilePage() {
       setCreatedKey(created)
       setNewKeyName('')
     } catch {
-      alert('Не удалось создать ключ')
+      alert(t('failedCreateKey'))
     } finally {
       setCreating(false)
     }
@@ -218,7 +222,7 @@ export default function ProfilePage() {
         ),
       )
     } catch {
-      alert('Не удалось отозвать ключ')
+      alert(t('failedRevokeKey'))
     } finally {
       setRevoking(null)
     }
@@ -244,13 +248,16 @@ export default function ProfilePage() {
         <Link href="/" className="text-lg font-bold" style={{ color: '#101585' }}>
           Ritualr
         </Link>
-        <Link
-          href="/"
-          className="text-sm font-semibold transition-colors"
-          style={{ color: '#A78BFA' }}
-        >
-          ← К трекеру
-        </Link>
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+          <Link
+            href="/"
+            className="text-sm font-semibold transition-colors"
+            style={{ color: '#A78BFA' }}
+          >
+            {t('backToTracker')}
+          </Link>
+        </div>
       </nav>
 
       <div className="max-w-2xl mx-auto px-6 space-y-6">
@@ -266,7 +273,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-lg font-bold" style={{ color: '#101585' }}>{user?.firstName}</p>
-              <p className="text-sm" style={{ color: '#A78BFA' }}>Telegram ID: {user?.telegramId}</p>
+              <p className="text-sm" style={{ color: '#A78BFA' }}>{t('telegramId')}: {user?.telegramId}</p>
             </div>
           </div>
         </div>
@@ -276,11 +283,11 @@ export default function ProfilePage() {
           <div className="flex items-start gap-3">
             <span className="text-2xl">🤖</span>
             <div>
-              <p className="font-semibold mb-1" style={{ color: '#101585' }}>MCP-сервер</p>
+              <p className="font-semibold mb-1" style={{ color: '#101585' }}>{t('mcpServer')}</p>
               <p className="text-sm leading-relaxed" style={{ color: '#2D22C4' }}>
-                Подключи Claude к своим привычкам через API-ключ. Работает с{' '}
-                <strong>Claude Code</strong> и <strong>Claude Desktop</strong>.
-                Сервер доступен по адресу{' '}
+                {t('mcpDesc')}{' '}
+                <strong>Claude Code</strong> {t('mcpDescEnd')} <strong>Claude Desktop</strong>.{' '}
+                {t('mcpAddress')}{' '}
                 <code className="bg-indigo-100 px-1 py-0.5 rounded text-xs font-mono">
                   {origin}/api/mcp
                 </code>
@@ -291,14 +298,14 @@ export default function ProfilePage() {
 
         {/* Create key */}
         <div className="bg-white rounded-3xl p-6 shadow-sm" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
-          <h2 className="text-lg font-bold mb-4" style={{ color: '#101585' }}>Создать API-ключ</h2>
+          <h2 className="text-lg font-bold mb-4" style={{ color: '#101585' }}>{t('createApiKey')}</h2>
           <form onSubmit={handleCreateKey} className="flex gap-3">
             <input
               ref={inputRef}
               type="text"
               value={newKeyName}
               onChange={e => setNewKeyName(e.target.value)}
-              placeholder='Название, например "Claude Code"'
+              placeholder={t('keyNamePlaceholder')}
               maxLength={64}
               className="flex-1 rounded-xl px-4 py-2.5 text-sm placeholder-slate-400 focus:outline-none"
               style={{ border: '1px solid rgba(167,139,250,0.3)', color: '#101585' }}
@@ -309,7 +316,7 @@ export default function ProfilePage() {
               className="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 hover:opacity-90"
               style={{ backgroundColor: '#101585' }}
             >
-              {creating ? '…' : 'Создать'}
+              {creating ? t('creating') : t('create')}
             </button>
           </form>
         </div>
@@ -318,7 +325,7 @@ export default function ProfilePage() {
         {activeKeys.length > 0 && (
           <div className="bg-white rounded-3xl p-6 shadow-sm" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
             <h2 className="text-lg font-bold mb-4" style={{ color: '#101585' }}>
-              Активные ключи
+              {t('activeKeys')}
               <span className="ml-2 text-sm font-normal" style={{ color: '#A78BFA' }}>({activeKeys.length})</span>
             </h2>
             <div className="space-y-3">
@@ -334,8 +341,8 @@ export default function ProfilePage() {
                       {maskPrefix(k.key_prefix)}
                     </p>
                     <p className="text-xs mt-0.5" style={{ color: '#A78BFA' }}>
-                      Создан {formatDate(k.created_at)}
-                      {k.last_used_at && ` · Использован ${formatDate(k.last_used_at)}`}
+                      {t('createdAt')} {formatDate(k.created_at, lang)}
+                      {k.last_used_at && ` · ${t('usedAt')} ${formatDate(k.last_used_at, lang)}`}
                     </p>
                   </div>
                   <button
@@ -344,7 +351,7 @@ export default function ProfilePage() {
                     className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50"
                     style={{ border: '1px solid rgba(244,63,94,0.25)' }}
                   >
-                    {revoking === k.id ? '…' : 'Отозвать'}
+                    {revoking === k.id ? t('revoking') : t('revoke')}
                   </button>
                 </div>
               ))}
@@ -355,7 +362,7 @@ export default function ProfilePage() {
         {/* Empty state */}
         {activeKeys.length === 0 && (
           <div className="text-center py-8 text-sm" style={{ color: '#A78BFA' }}>
-            Нет активных ключей — создай первый выше
+            {t('noActiveKeys')}
           </div>
         )}
 
@@ -363,7 +370,7 @@ export default function ProfilePage() {
         {revokedKeys.length > 0 && (
           <details className="bg-white rounded-3xl shadow-sm overflow-hidden" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
             <summary className="px-6 py-4 cursor-pointer text-sm font-semibold list-none flex items-center justify-between" style={{ color: '#A78BFA' }}>
-              <span>Отозванные ключи ({revokedKeys.length})</span>
+              <span>{t('revokedKeys')} ({revokedKeys.length})</span>
               <span style={{ color: 'rgba(167,139,250,0.4)' }}>▾</span>
             </summary>
             <div className="px-6 pb-5 space-y-3">
@@ -378,11 +385,11 @@ export default function ProfilePage() {
                       {maskPrefix(k.key_prefix)}
                     </p>
                     <p className="text-xs text-slate-300 mt-0.5">
-                      Отозван {formatDate(k.revoked_at)}
+                      {t('revokedAt')} {formatDate(k.revoked_at, lang)}
                     </p>
                   </div>
                   <span className="shrink-0 px-2 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-400">
-                    Отозван
+                    {t('revokedLabel')}
                   </span>
                 </div>
               ))}

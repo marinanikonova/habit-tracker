@@ -1,6 +1,7 @@
 'use client'
 
 import { Habit } from '@/lib/types'
+import { useLanguage } from '@/lib/LanguageContext'
 
 interface AchievementsSectionProps {
   habits: Habit[]
@@ -15,6 +16,8 @@ interface Achievement {
 }
 
 export default function AchievementsSection({ habits, weekDates }: AchievementsSectionProps) {
+  const { t } = useLanguage()
+
   const totalSlots = habits.length * 7
   const completedSlots = habits.reduce((sum, h) => {
     return sum + weekDates.filter(d => h.completions.includes(d)).length
@@ -30,43 +33,43 @@ export default function AchievementsSection({ habits, weekDates }: AchievementsS
   const achievements: Achievement[] = [
     {
       emoji: '🔥',
-      title: 'На огне',
-      description: '3+ дней подряд',
+      title: t('onFireTitle'),
+      description: t('onFireDesc'),
       unlocked: streak >= 3,
     },
     {
       emoji: '⭐',
-      title: 'Звёздная неделя',
-      description: '100% за неделю',
+      title: t('starWeekTitle'),
+      description: t('starWeekDesc'),
       unlocked: weeklyPercentage === 100 && habits.length > 0,
     },
     {
       emoji: '🎯',
-      title: 'Идеальный день',
-      description: 'Все привычки сегодня',
+      title: t('perfectDayTitle'),
+      description: t('perfectDayDesc'),
       unlocked: todayPercentage === 100 && habits.length > 0,
     },
     {
       emoji: '💪',
-      title: 'Полпути',
-      description: '50%+ за неделю',
+      title: t('halfwayTitle'),
+      description: t('halfwayDesc'),
       unlocked: weeklyPercentage >= 50,
     },
   ]
 
   return (
     <section className="mt-8">
-      <h2 className="text-lg font-bold text-slate-800 mb-1">Мои достижения</h2>
-      <p className="text-sm text-slate-500 mb-4">Прогресс за текущую неделю</p>
+      <h2 className="text-lg font-bold text-slate-800 mb-1">{t('myAchievements')}</h2>
+      <p className="text-sm text-slate-500 mb-4">{t('weekProgress')}</p>
 
       {/* Main weekly stat */}
       <div className="bg-gradient-to-br from-pink-400 to-rose-500 rounded-2xl p-5 text-white mb-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-pink-100 text-sm font-medium">Выполнено за неделю</p>
+            <p className="text-pink-100 text-sm font-medium">{t('completedThisWeek')}</p>
             <p className="text-4xl font-bold mt-1">{weeklyPercentage}%</p>
             <p className="text-pink-200 text-xs mt-1">
-              {completedSlots} из {totalSlots} выполнений
+              {t('ofCompletions').replace('{done}', String(completedSlots)).replace('{total}', String(totalSlots))}
             </p>
           </div>
           <WeeklyRing percentage={weeklyPercentage} />
@@ -85,9 +88,9 @@ export default function AchievementsSection({ habits, weekDates }: AchievementsS
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <StatCard label="Сегодня" value={`${todayPercentage}%`} sub={`${doneToday}/${habits.length}`} color="pink" />
-        <StatCard label="Серия" value={`${streak}д`} sub="подряд" color="amber" />
-        <StatCard label="Привычек" value={String(habits.length)} sub="всего" color="teal" />
+        <StatCard label={t('today')} value={`${todayPercentage}%`} sub={`${doneToday}/${habits.length}`} color="pink" />
+        <StatCard label={t('streak')} value={`${streak}д`} sub={t('inARow')} color="amber" />
+        <StatCard label={t('habits')} value={String(habits.length)} sub={t('total')} color="teal" />
       </div>
 
       {/* Achievements grid */}
@@ -108,7 +111,7 @@ export default function AchievementsSection({ habits, weekDates }: AchievementsS
             <p className="text-xs text-slate-400">{ach.description}</p>
             {ach.unlocked && (
               <span className="inline-block mt-1.5 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                Разблокировано
+                {t('unlocked')}
               </span>
             )}
           </div>
