@@ -2,6 +2,9 @@ export type Lang = 'ru' | 'en'
 
 export const translations = {
   ru: {
+    // App name
+    appName: 'Привычка',
+
     // General
     add:     'Добавить',
     save:    'Сохранить',
@@ -154,6 +157,9 @@ export const translations = {
   },
 
   en: {
+    // App name
+    appName: 'Ritualr',
+
     // General
     add:     'Add',
     save:    'Save',

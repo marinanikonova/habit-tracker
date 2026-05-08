@@ -281,7 +281,7 @@ export default function Home() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-slate-400 font-medium">{formatDate(today, lang)}</p>
-              <h1 className="text-2xl font-bold mt-0.5" style={{ color: '#101585' }}>Ritualr</h1>
+              <h1 className="text-2xl font-bold mt-0.5" style={{ color: '#101585' }}>{t('appName')}</h1>
               {userName && (
                 <p className="text-xs text-slate-400 mt-0.5">{userName}</p>
               )}
