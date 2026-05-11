@@ -1,564 +1,634 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Habit, Group, Frequency, FREQUENCY_ICONS, AntiHabit } from '@/lib/types'
-import { getFrequencyLabel } from '@/lib/i18n'
-import {
-  loadHabits, saveHabits, loadGroups, saveGroups, loadAntiHabits, saveAntiHabits,
-  getTodayString, getWeekDates, getExpectedDates,
-} from '@/lib/storage'
-import { useReminders } from '@/lib/hooks/useReminders'
+import { useState } from 'react'
 import { useLanguage } from '@/lib/LanguageContext'
-import GroupSection from '@/components/GroupSection'
-import AchievementsSection from '@/components/AchievementsSection'
-import AddHabitModal from '@/components/AddHabitModal'
-import AddAntiHabitModal from '@/components/AddAntiHabitModal'
-import AntiHabitsSection from '@/components/AntiHabitsSection'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
-type Tab = 'habits' | 'anti' | 'achievements'
-type ViewMode = 'by-group' | 'by-frequency'
-
-const FREQUENCIES: Frequency[] = ['daily', 'weekdays', 'weekends', 'weekly']
-
-export default function Home() {
-  const { t, lang } = useLanguage()
-
-  const [habits, setHabits] = useState<Habit[]>([])
-  const [groups, setGroups] = useState<Group[]>([])
-  const [antiHabits, setAntiHabits] = useState<AntiHabit[]>([])
-  const [showModal, setShowModal] = useState(false)
-  const [showAntiModal, setShowAntiModal] = useState(false)
-  const [editingHabit, setEditingHabit] = useState<Habit | null>(null)
-  const [tab, setTab] = useState<Tab>('habits')
-  const [viewMode, setViewMode] = useState<ViewMode>('by-group')
-  const [mounted, setMounted] = useState(false)
-  const [userName, setUserName] = useState<string | null>(null)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-
-  const today = getTodayString()
-  const weekDates = getWeekDates()
-
-  // ── DB helpers ───────────────────────────────────────────────────────────────
-
-  function dbSave(endpoint: string, data: unknown[]) {
-    fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    }).catch(console.error)
-  }
-
-  // Debounce refs — avoid hammering the DB on rapid state changes
-  const habitTimer   = useRef<ReturnType<typeof setTimeout>>()
-  const groupTimer   = useRef<ReturnType<typeof setTimeout>>()
-  const antiTimer    = useRef<ReturnType<typeof setTimeout>>()
-
-  // ── Load ─────────────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    async function load() {
-      const me = await fetch('/api/auth/me').then(r => r.ok ? r.json() : null).catch(() => null)
-
-      if (me) {
-        setIsLoggedIn(true)
-        setUserName(me.firstName as string)
-        try {
-          const [dbHabits, dbGroups, dbAnti] = await Promise.all([
-            fetch('/api/habits').then(r => r.ok ? r.json() : []),
-            fetch('/api/groups').then(r => r.ok ? r.json() : []),
-            fetch('/api/anti-habits').then(r => r.ok ? r.json() : []),
-          ])
-          // DB empty on first login — migrate from localStorage, save effects will push to DB
-          if (dbHabits.length === 0 && dbGroups.length === 0 && dbAnti.length === 0) {
-            setHabits(loadHabits())
-            setGroups(loadGroups())
-            setAntiHabits(loadAntiHabits())
-          } else {
-            setHabits(dbHabits)
-            setGroups(dbGroups)
-            setAntiHabits(dbAnti)
-          }
-        } catch {
-          setHabits(loadHabits())
-          setGroups(loadGroups())
-          setAntiHabits(loadAntiHabits())
-        }
-      } else {
-        // Anonymous — use localStorage only
-        setHabits(loadHabits())
-        setGroups(loadGroups())
-        setAntiHabits(loadAntiHabits())
-      }
-      setMounted(true)
-    }
-    load()
-  }, [])
-
-  // ── Save (debounced 600 ms) ───────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!mounted) return
-    if (isLoggedIn) {
-      clearTimeout(habitTimer.current)
-      habitTimer.current = setTimeout(() => dbSave('/api/habits', habits), 600)
-    } else {
-      saveHabits(habits)
-    }
-  }, [habits, mounted, isLoggedIn])
-
-  useEffect(() => {
-    if (!mounted) return
-    if (isLoggedIn) {
-      clearTimeout(groupTimer.current)
-      groupTimer.current = setTimeout(() => dbSave('/api/groups', groups), 600)
-    } else {
-      saveGroups(groups)
-    }
-  }, [groups, mounted, isLoggedIn])
-
-  useEffect(() => {
-    if (!mounted) return
-    if (isLoggedIn) {
-      clearTimeout(antiTimer.current)
-      antiTimer.current = setTimeout(() => dbSave('/api/anti-habits', antiHabits), 600)
-    } else {
-      saveAntiHabits(antiHabits)
-    }
-  }, [antiHabits, mounted, isLoggedIn])
-  useReminders(habits, today)
-
-  // ── Handlers ────────────────────────────────────────────────────────────────
-
-  function handleSave(name: string, emoji: string, color: string, groupId: string | null, frequency: Frequency) {
-    if (editingHabit) {
-      setHabits(prev => prev.map(h =>
-        h.id === editingHabit.id ? { ...h, name, emoji, color, groupId, frequency } : h
-      ))
-      setEditingHabit(null)
-    } else {
-      const newHabit: Habit = {
-        id: Date.now().toString(),
-        name, emoji, color, groupId, frequency,
-        reminder: null,
-        createdAt: new Date().toISOString(),
-        completions: [],
-      }
-      setHabits(prev => [...prev, newHabit])
-      setShowModal(false)
-    }
-  }
-
-  function handleStartEdit(habit: Habit) {
-    setEditingHabit(habit)
-  }
-
-  function handleAddGroup(name: string, emoji: string): Group {
-    const g: Group = { id: Date.now().toString(), name, emoji }
-    setGroups(prev => [...prev, g])
-    return g
-  }
-
-  function handleDeleteGroup(id: string) {
-    // Unassign habits from the deleted group
-    setHabits(prev => prev.map(h => h.groupId === id ? { ...h, groupId: null } : h))
-    setGroups(prev => prev.filter(g => g.id !== id))
-  }
-
-  function handleToggleToday(id: string) {
-    setHabits(prev => prev.map(h => {
-      if (h.id !== id) return h
-      const done = h.completions.includes(today)
-      return { ...h, completions: done ? h.completions.filter(d => d !== today) : [...h.completions, today] }
-    }))
-  }
-
-  function handleReset(id: string) {
-    setHabits(prev => prev.map(h => h.id === id ? { ...h, completions: [] } : h))
-  }
-
-  function handleDelete(id: string) {
-    setHabits(prev => prev.filter(h => h.id !== id))
-  }
-
-  function handleUpdateHabit(id: string, updates: Partial<Habit>) {
-    setHabits(prev => prev.map(h => h.id === id ? { ...h, ...updates } : h))
-  }
-
-  // ── Anti-habit handlers ───────────────────────────────────────────────────────
-
-  function handleAddAntiHabit(name: string, reason: string | null, frequency: Frequency) {
-    const newAntiHabit: AntiHabit = {
-      id: Date.now().toString(),
-      name, reason, frequency,
-      createdAt: new Date().toISOString(),
-      failures: [],
-      cleanDays: [],
-    }
-    setAntiHabits(prev => [...prev, newAntiHabit])
-    setShowAntiModal(false)
-  }
-
-  function handleAntiAnswer(id: string, outcome: 'clean' | 'failed') {
-    setAntiHabits(prev => prev.map(ah => {
-      if (ah.id !== id) return ah
-      if (outcome === 'clean') {
-        return { ...ah, cleanDays: [...ah.cleanDays.filter(d => d !== today), today] }
-      } else {
-        return {
-          ...ah,
-          failures: [...ah.failures.filter(d => d !== today), today],
-          cleanDays: ah.cleanDays.filter(d => d !== today),
-        }
-      }
-    }))
-  }
-
-  function handleAntiUndoAnswer(id: string) {
-    setAntiHabits(prev => prev.map(ah =>
-      ah.id !== id ? ah : {
-        ...ah,
-        failures: ah.failures.filter(d => d !== today),
-        cleanDays: ah.cleanDays.filter(d => d !== today),
-      }
-    ))
-  }
-
-  function handleDeleteAntiHabit(id: string) {
-    setAntiHabits(prev => prev.filter(ah => ah.id !== id))
-  }
-
-  function handleResetAntiHabit(id: string) {
-    setAntiHabits(prev => prev.map(ah =>
-      ah.id === id ? { ...ah, failures: [], cleanDays: [] } : ah
-    ))
-  }
-
-  // ── Grouped data ─────────────────────────────────────────────────────────────
-
-  const groupedByGroup = useMemo(() => {
-    const map = new Map<string | null, Habit[]>()
-    map.set(null, []) // ungrouped bucket
-    groups.forEach(g => map.set(g.id, []))
-    habits.forEach(h => {
-      const bucket = map.get(h.groupId) ?? map.get(null)!
-      bucket.push(h)
-    })
-    return map
-  }, [habits, groups])
-
-  const groupedByFrequency = useMemo(() => {
-    const map = new Map<Frequency, Habit[]>()
-    FREQUENCIES.forEach(f => map.set(f, []))
-    habits.forEach(h => map.get(h.frequency)!.push(h))
-    return map
-  }, [habits])
-
-  // ── Stats ────────────────────────────────────────────────────────────────────
-
-  const doneToday = habits.filter(h => h.completions.includes(today)).length
-  const totalHabits = habits.length
-
-  const totalExpected = habits.reduce((s, h) => s + getExpectedDates(weekDates, h.frequency).length, 0)
-  const totalCompleted = habits.reduce((s, h) =>
-    s + getExpectedDates(weekDates, h.frequency).filter(d => h.completions.includes(d)).length, 0)
-  const weekPct = totalExpected > 0 ? Math.round((totalCompleted / totalExpected) * 100) : 0
-
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fff0f5' }}>
-        <div className="w-8 h-8 border-2 border-pink-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
-
-  return (
-    <main className="min-h-screen" style={{ backgroundColor: '#EDE9FF' }}>
-      <div className="max-w-lg mx-auto px-4 pb-24">
-
-        {/* Header */}
-        <header className="pt-10 pb-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-slate-400 font-medium">{formatDate(today, lang)}</p>
-              <h1 className="text-2xl font-bold mt-0.5" style={{ color: '#101585' }}>{t('appName')}</h1>
-              {userName && (
-                <p className="text-xs text-slate-400 mt-0.5">{userName}</p>
-              )}
-              {totalHabits > 0 && (
-                <p className="text-sm text-slate-500 mt-1">
-                  {doneToday === totalHabits
-                    ? t('allDone')
-                    : t('doneToday').replace('{done}', String(doneToday)).replace('{total}', String(totalHabits))}
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <LanguageSwitcher />
-              <button
-                onClick={() => tab === 'anti' ? setShowAntiModal(true) : setShowModal(true)}
-                className="flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-all shadow-sm hover:opacity-90"
-                style={{ backgroundColor: '#101585', display: tab === 'achievements' ? 'none' : undefined }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                {t('add')}
-              </button>
-              {isLoggedIn && (
-                <>
-                  <a
-                    href="/profile"
-                    title={t('profile')}
-                    className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-pink-100 text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                      <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                  </a>
-                  <button
-                    onClick={async () => {
-                      await fetch('/api/auth/logout', { method: 'POST' })
-                      window.location.reload()
-                    }}
-                    title={t('logout')}
-                    className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-pink-100 text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                      <polyline points="16 17 21 12 16 7"/>
-                      <line x1="21" y1="12" x2="9" y2="12"/>
-                    </svg>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {totalHabits > 0 && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-slate-500">{t('dayProgress')}</span>
-                <span className="text-xs font-semibold text-pink-500">
-                  {Math.round((doneToday / totalHabits) * 100)}%
-                </span>
-              </div>
-              <div className="w-full rounded-full h-2" style={{ backgroundColor: 'rgba(167,139,250,0.25)' }}>
-                <div
-                  className="rounded-full h-2 transition-all duration-700"
-                  style={{
-                    width: `${(doneToday / totalHabits) * 100}%`,
-                    background: 'linear-gradient(90deg, #A78BFA 0%, #2D22C4 100%)',
-                  }}
-                />
-              </div>
-            </div>
-          )}
-        </header>
-
-        {/* Save-progress banner for anonymous users */}
-        {!isLoggedIn && (
-          <div className="bg-white rounded-2xl px-4 py-3.5 mb-4 flex items-center justify-between shadow-sm" style={{ border: '1px solid rgba(167,139,250,0.3)' }}>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: '#101585' }}>{t('saveHistory')}</p>
-              <p className="text-xs mt-0.5" style={{ color: '#A78BFA' }}>{t('loginPrompt')}</p>
-            </div>
-            <a
-              href="/login"
-              className="flex items-center gap-1.5 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all hover:opacity-90 whitespace-nowrap"
-              style={{ backgroundColor: '#101585' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                <polyline points="10 17 15 12 10 7"/>
-                <line x1="15" y1="12" x2="3" y2="12"/>
-              </svg>
-              {t('login')}
-            </a>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-xl mb-4" style={{ backgroundColor: 'rgba(16,21,133,0.08)' }}>
-          <TabButton active={tab === 'habits'} onClick={() => setTab('habits')}>{t('tabHabits')}</TabButton>
-          <TabButton active={tab === 'anti'} onClick={() => setTab('anti')}>{t('tabAnti')}</TabButton>
-          <TabButton active={tab === 'achievements'} onClick={() => setTab('achievements')}>{t('tabAchievements')}</TabButton>
-        </div>
-
-        {/* ── Habits tab ─────────────────────────────────────────────────────── */}
-        {tab === 'habits' && (
-          <>
-            {habits.length > 0 && (
-              /* View-mode toggle */
-              <div className="flex items-center gap-2 mb-5">
-                <span className="text-xs text-slate-400 mr-1">{t('viewBy')}</span>
-                <ViewToggle
-                  active={viewMode === 'by-group'}
-                  onClick={() => setViewMode('by-group')}
-                  icon="🗂️"
-                  label={t('byGroup')}
-                />
-                <ViewToggle
-                  active={viewMode === 'by-frequency'}
-                  onClick={() => setViewMode('by-frequency')}
-                  icon="⏱️"
-                  label={t('byFrequency')}
-                />
-              </div>
-            )}
-
-            {habits.length === 0 ? (
-              <EmptyState onAdd={() => setShowModal(true)} />
-            ) : viewMode === 'by-group' ? (
-              <>
-                {groups.map(g => (
-                  <GroupSection
-                    key={g.id}
-                    group={g}
-                    habits={groupedByGroup.get(g.id) ?? []}
-                    weekDates={weekDates}
-                    today={today}
-                    onToggleToday={handleToggleToday}
-                    onReset={handleReset}
-                    onDelete={handleDelete}
-                    onEdit={handleStartEdit}
-                    onUpdateHabit={handleUpdateHabit}
-                    onDeleteGroup={handleDeleteGroup}
-                  />
-                ))}
-                {/* Ungrouped */}
-                <GroupSection
-                  group={null}
-                  habits={groupedByGroup.get(null) ?? []}
-                  weekDates={weekDates}
-                  today={today}
-                  onToggleToday={handleToggleToday}
-                  onReset={handleReset}
-                  onDelete={handleDelete}
-                  onEdit={handleStartEdit}
-                  onUpdateHabit={handleUpdateHabit}
-                />
-              </>
-            ) : (
-              FREQUENCIES.map(f => {
-                const fHabits = groupedByFrequency.get(f) ?? []
-                if (fHabits.length === 0) return null
-                return (
-                  <GroupSection
-                    key={f}
-                    group={{ id: f, name: getFrequencyLabel(f, lang), emoji: FREQUENCY_ICONS[f] }}
-                    habits={fHabits}
-                    weekDates={weekDates}
-                    today={today}
-                    onToggleToday={handleToggleToday}
-                    onReset={handleReset}
-                    onDelete={handleDelete}
-                    onEdit={handleStartEdit}
-                    onUpdateHabit={handleUpdateHabit}
-                  />
-                )
-              })
-            )}
-          </>
-        )}
-
-        {tab === 'anti' && (
-          <AntiHabitsSection
-            antiHabits={antiHabits}
-            today={today}
-            weekDates={weekDates}
-            onAnswer={handleAntiAnswer}
-            onUndoAnswer={handleAntiUndoAnswer}
-            onDelete={handleDeleteAntiHabit}
-            onReset={handleResetAntiHabit}
-            onAdd={() => setShowAntiModal(true)}
-          />
-        )}
-
-        {tab === 'achievements' && (
-          <AchievementsSection habits={habits} weekDates={weekDates} />
-        )}
-      </div>
-
-      {(showModal || editingHabit) && (
-        <AddHabitModal
-          groups={groups}
-          initialHabit={editingHabit ?? undefined}
-          onSave={handleSave}
-          onAddGroup={handleAddGroup}
-          onClose={() => { setShowModal(false); setEditingHabit(null) }}
-        />
-      )}
-
-      {showAntiModal && (
-        <AddAntiHabitModal
-          onSave={handleAddAntiHabit}
-          onClose={() => setShowAntiModal(false)}
-        />
-      )}
-    </main>
-  )
+// Brand colors
+const C = {
+  midnight: '#101585',
+  dusk: '#2D22C4',
+  lavender: '#A78BFA',
+  haze: '#EDE9FF',
+  spark: '#FFDD44',
 }
 
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+// ─── Copy ────────────────────────────────────────────────────────────────────
+
+const copy = {
+  ru: {
+    appName: 'Привычка',
+    navCta: 'Начать',
+    heroHeadline: 'Привычка,\nкоторая меняет всё',
+    heroSub:
+      'Бросить плохое так же важно, как начать хорошее. Привычка ведёт счёт и тому, и другому.',
+    heroCta: 'Начать сейчас — бесплатно',
+    // Bento
+    bentoTitle: 'Всё, что нужно. Ничего лишнего.',
+    bento: {
+      antiTitle: '🚫 Анти-привычки',
+      antiDesc:
+        'Первый трекер, где «не курить» и «бегать» стоят рядом. Каждый день — честный счёт.',
+      streakTitle: '🔥 7 дней подряд',
+      streakDesc: 'Серия горит. Не прерви.',
+      freeTitle: '₀ Бесплатно',
+      freeDesc: 'Без пробного периода. Навсегда.',
+      noregTitle: '⚡ Без регистрации',
+      noregDesc: 'Открой и начни. Данные в браузере.',
+      groupsTitle: '🗂 Группы',
+      groupsDesc: 'Здоровье, работа, личное — каждая привычка знает своё место.',
+      noguiltTitle: '💙 Без осуждения',
+      noguiltDesc: 'Сорвался? Начни заново. Без лекций.',
+    },
+    // Story
+    storyTitle: 'Как работают анти-привычки',
+    storyP1:
+      'Добавь то, от чего хочешь избавиться: курение, прокрастинация, фастфуд, телефон перед сном.',
+    storyP2: 'Каждый день приложение спрашивает одно: было сегодня или нет?',
+    storyP3:
+      'Если нет — серия растёт. Если да — обнуляется. Без осуждения, без лекций. Просто честный счёт.',
+    storyBadge: '7 дней чисто → значок. 30 дней → ты уже другой человек.',
+    mockLabel: 'Не курю',
+    mockDays: 'дней',
+    mockSince: 'Серия: 7',
+    // FAQ
+    faqTitle: 'Вопросы',
+    faq: [
+      {
+        q: 'Чем это отличается от Habitica или Streaks?',
+        a: 'Habitica — это RPG-игра с аватарами и гильдиями. Streaks — только iOS. Ни одно из них не делает анти-привычки нативно. Привычка — веб, работает на любом устройстве, без игровой шелухи.',
+      },
+      {
+        q: 'Я уже веду всё в Notion. Зачем мне ещё одно приложение?',
+        a: 'Notion не спросит тебя утром «курил сегодня?» и не покажет серию из 12 чистых дней. Это другой инструмент для другой задачи. Можно использовать оба.',
+      },
+      {
+        q: 'Данные сохранятся, если я закрою вкладку?',
+        a: 'Без входа — данные в браузере, не пропадут при закрытии вкладки. Войди через Google — и всё переедет в облако, будет доступно с любого устройства.',
+      },
+      {
+        q: 'Это бесплатно навсегда или будет подписка?',
+        a: 'Сейчас — бесплатно и без ограничений. Если появятся платные функции — базовый трекер останется бесплатным.',
+      },
+      {
+        q: 'А если я однажды сорвусь и не хочу это видеть?',
+        a: 'Можно не отмечать. Можно сбросить серию и начать заново. Привычка не ведёт журнал вины — только то, что ты сам решаешь отметить.',
+      },
+    ],
+    // CTA
+    ctaHeadline: 'Половина работы — в том, чего ты больше не делаешь.',
+    ctaSub: 'Начни считать обе половины.',
+    ctaBtn: 'Открыть и начать',
+    footerTagline: 'Трекер привычек и анти-привычек',
+  },
+
+  en: {
+    appName: 'Ritualr',
+    navCta: 'Start',
+    heroHeadline: 'Repeat until\nit\'s you',
+    heroSub: 'Quitting bad habits counts as much as building good ones. Ritualr tracks both.',
+    heroCta: 'Start free — no sign-up needed',
+    // Bento
+    bentoTitle: 'Everything you need. Nothing you don\'t.',
+    bento: {
+      antiTitle: '🚫 Anti-habits',
+      antiDesc:
+        'The first tracker where "stop smoking" and "go running" live side by side. An honest count, every day.',
+      streakTitle: '🔥 7 days in a row',
+      streakDesc: 'Your streak is alive. Don\'t break it.',
+      freeTitle: '₀ Free forever',
+      freeDesc: 'No trial. No tiers. No catch.',
+      noregTitle: '⚡ No sign-up',
+      noregDesc: 'Open and start. Data lives in your browser.',
+      groupsTitle: '🗂 Groups',
+      groupsDesc: 'Health, work, personal — each habit knows where it belongs.',
+      noguiltTitle: '💙 No judgment',
+      noguiltDesc: 'Slipped? Start fresh. No lectures.',
+    },
+    // Story
+    storyTitle: 'How anti-habits work',
+    storyP1:
+      'Add what you want to quit: smoking, procrastination, junk food, phone before bed.',
+    storyP2: 'Every day, the app asks one thing: did it happen today, or not?',
+    storyP3:
+      'If not — the streak grows. If yes — it resets. No guilt trips, no lectures. Just an honest count.',
+    storyBadge: '7 days clean → badge. 30 days → you\'re already a different person.',
+    mockLabel: 'No smoking',
+    mockDays: 'days',
+    mockSince: 'Streak: 7',
+    // FAQ
+    faqTitle: 'Questions',
+    faq: [
+      {
+        q: 'How is this different from Habitica or Streaks?',
+        a: 'Habitica is an RPG game with avatars and guilds. Streaks is iOS-only. Neither treats anti-habits as a first-class feature. Ritualr works on any device, in any browser, without the game layer.',
+      },
+      {
+        q: 'I already track everything in Notion. Why switch?',
+        a: "Notion won't ask you \"did you smoke today?\" or show you a 12-day clean streak. Different tool, different job. You can use both.",
+      },
+      {
+        q: 'Will my data survive if I close the tab?',
+        a: 'Without sign-in — data lives in your browser and persists across sessions. Sign in with Google and everything moves to the cloud, available from any device.',
+      },
+      {
+        q: 'Is this really free forever?',
+        a: 'Right now — fully free, no limits. If paid features ever come, the core tracker stays free.',
+      },
+      {
+        q: "What if I slip and don't want to see it?",
+        a: "You don't have to mark it. You can reset a streak and start fresh. Ritualr doesn't keep a guilt log — only what you choose to record.",
+      },
+    ],
+    // CTA
+    ctaHeadline: 'Half the work is what you stopped doing.',
+    ctaSub: 'Start counting both halves.',
+    ctaBtn: 'Open and start',
+    footerTagline: 'Habit tracker and anti-habit tracker',
+  },
+} as const
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false)
   return (
-    <button
-      onClick={onClick}
-      className="flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-      style={{
-        backgroundColor: active ? '#fff' : 'transparent',
-        color: active ? '#101585' : 'rgba(16,21,133,0.5)',
-        fontWeight: active ? 600 : 400,
-        boxShadow: active ? '0 1px 3px rgba(16,21,133,0.1)' : 'none',
-      }}
+    <div
+      className="border-b last:border-b-0 cursor-pointer"
+      style={{ borderColor: 'rgba(16,21,133,0.12)' }}
+      onClick={() => setOpen((v) => !v)}
     >
-      {children}
-    </button>
-  )
-}
-
-function ViewToggle({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: string; label: string }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
-      style={{
-        backgroundColor: active ? '#fff' : 'transparent',
-        border: active ? '1px solid rgba(167,139,250,0.4)' : '1px solid transparent',
-        color: active ? '#101585' : 'rgba(16,21,133,0.45)',
-        boxShadow: active ? '0 1px 3px rgba(16,21,133,0.08)' : 'none',
-      }}
-    >
-      <span>{icon}</span>
-      {label}
-    </button>
-  )
-}
-
-function EmptyState({ onAdd }: { onAdd: () => void }) {
-  const { t } = useLanguage()
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
-      <div className="text-5xl mb-4">🌱</div>
-      <h3 className="text-lg font-semibold text-slate-700 mb-2">{t('noHabits')}</h3>
-      <p className="text-sm text-slate-400 mb-6 max-w-xs">
-        {t('noHabitsDesc')}
-      </p>
-      <button onClick={onAdd}
-        className="flex items-center gap-2 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all hover:opacity-90"
-        style={{ backgroundColor: '#101585' }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        {t('addFirstHabit')}
-      </button>
+      <div className="flex items-center justify-between py-5 gap-4">
+        <span className="font-semibold text-base leading-snug" style={{ color: C.midnight }}>
+          {q}
+        </span>
+        <span
+          className="text-xl flex-shrink-0 transition-transform duration-200"
+          style={{
+            color: C.dusk,
+            transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
+          }}
+        >
+          +
+        </span>
+      </div>
+      {open && (
+        <p className="pb-5 text-sm leading-relaxed" style={{ color: 'rgba(16,21,133,0.65)' }}>
+          {a}
+        </p>
+      )}
     </div>
   )
 }
 
-function formatDate(dateStr: string, lang: string): string {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', {
-    weekday: 'long', day: 'numeric', month: 'long',
-  })
+function MockHabitCard({ label, days, streak }: { label: string; days: string; streak: string }) {
+  return (
+    <div
+      className="rounded-2xl p-5 flex flex-col gap-3 shadow-lg w-full max-w-xs"
+      style={{ background: '#fff', border: `1.5px solid ${C.haze}` }}
+    >
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-base"
+            style={{ background: C.midnight, color: '#fff' }}
+          >
+            🚫
+          </div>
+          <span className="font-bold text-sm" style={{ color: C.midnight }}>
+            {label}
+          </span>
+        </div>
+        <span
+          className="text-xs font-semibold px-2 py-1 rounded-lg"
+          style={{ background: C.haze, color: C.dusk }}
+        >
+          {streak}
+        </span>
+      </div>
+
+      {/* Streak counter */}
+      <div className="flex items-end gap-2">
+        <span className="text-5xl font-black leading-none" style={{ color: C.midnight }}>
+          7
+        </span>
+        <span className="text-lg mb-1" style={{ color: C.lavender }}>
+          🔥
+        </span>
+        <span className="text-sm mb-1 font-medium" style={{ color: 'rgba(16,21,133,0.5)' }}>
+          {days}
+        </span>
+      </div>
+
+      {/* Day dots */}
+      <div className="flex gap-1.5 mt-1">
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => (
+          <div
+            key={d}
+            className="flex-1 h-2 rounded-full"
+            style={{
+              background: i < 7 ? C.dusk : C.haze,
+              opacity: i < 7 ? 1 : 0.35,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+export default function LandingPage() {
+  const { lang } = useLanguage()
+  const c = copy[lang]
+
+  return (
+    <div className="min-h-screen bg-white font-sans antialiased">
+      {/* ── NAV ─────────────────────────────────────────────────────────── */}
+      <nav
+        className="sticky top-0 z-50 flex items-center justify-between px-5 py-3"
+        style={{
+          background: 'rgba(255,255,255,0.9)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(16,21,133,0.08)',
+        }}
+      >
+        <a href="/app" className="font-black text-xl tracking-tight" style={{ color: C.midnight }}>
+          {c.appName}
+        </a>
+
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+          <a
+            href="/app"
+            className="text-sm font-semibold px-4 py-2 rounded-xl transition-opacity hover:opacity-80"
+            style={{ background: C.midnight, color: '#fff' }}
+          >
+            {c.navCta}
+          </a>
+        </div>
+      </nav>
+
+      {/* ── HERO ─────────────────────────────────────────────────────────── */}
+      <section
+        id="hero"
+        className="relative overflow-hidden px-5 pt-20 pb-24 md:pt-28 md:pb-32 flex flex-col items-center text-center"
+      >
+        {/* Background glow */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `radial-gradient(ellipse 80% 60% at 50% 0%, ${C.haze} 0%, transparent 70%)`,
+          }}
+        />
+
+        <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center gap-6">
+          <h1
+            className="text-4xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight"
+            style={{ color: C.midnight, whiteSpace: 'pre-line' }}
+          >
+            {c.heroHeadline}
+          </h1>
+
+          <p
+            className="text-lg md:text-xl font-light max-w-lg leading-relaxed"
+            style={{ color: 'rgba(16,21,133,0.65)' }}
+          >
+            {c.heroSub}
+          </p>
+
+          <a
+            href="/app"
+            className="mt-2 inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-base shadow-lg transition-transform hover:scale-105"
+            style={{ background: C.spark, color: C.midnight }}
+          >
+            {c.heroCta}
+          </a>
+
+          {/* Mini visual — fake app screenshot */}
+          <div className="mt-8 w-full max-w-sm mx-auto">
+            <MockHabitCard
+              label={c.mockLabel}
+              days={c.mockDays}
+              streak={c.mockSince}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ── BENTO GRID ───────────────────────────────────────────────────── */}
+      <section
+        id="bento"
+        className="px-5 py-20 md:py-28 max-w-5xl mx-auto"
+      >
+        <h2
+          className="text-3xl md:text-4xl font-black text-center mb-12"
+          style={{ color: C.midnight }}
+        >
+          {c.bentoTitle}
+        </h2>
+
+        {/*
+          Desktop grid: 4 columns
+          Row 1: anti (col-span-2) | streak (col-span-2, row-span-2)
+          Row 2: free (col-span-1) | noreg (col-span-1)
+          Row 3: groups (col-span-2) | noguilt (col-span-2)
+        */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+          {/* Anti-habits — large, dark */}
+          <div
+            className="md:col-span-2 rounded-3xl p-7 flex flex-col gap-3"
+            style={{ background: C.midnight, minHeight: '220px' }}
+          >
+            <span className="text-2xl font-black" style={{ color: C.spark }}>
+              {c.bento.antiTitle}
+            </span>
+            <p className="text-base font-light leading-relaxed" style={{ color: 'rgba(255,255,255,0.78)' }}>
+              {c.bento.antiDesc}
+            </p>
+          </div>
+
+          {/* Streak — tall, lavender */}
+          <div
+            className="md:col-span-2 md:row-span-2 rounded-3xl p-7 flex flex-col justify-between"
+            style={{ background: C.lavender, minHeight: '300px' }}
+          >
+            <div className="flex flex-col gap-3">
+              <span className="text-2xl font-black text-white">{c.bento.streakTitle}</span>
+              <p className="text-base font-light leading-relaxed text-white/80">
+                {c.bento.streakDesc}
+              </p>
+            </div>
+            {/* Inline streak visual */}
+            <div className="flex flex-col gap-2 mt-6">
+              <div className="flex items-end gap-2">
+                <span className="text-6xl font-black text-white leading-none">7</span>
+                <span className="text-3xl mb-1">🔥</span>
+              </div>
+              <div className="flex gap-1.5">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 h-2 rounded-full"
+                    style={{ background: 'rgba(255,255,255,0.9)' }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Free — white */}
+          <div
+            className="md:col-span-1 rounded-3xl p-6 flex flex-col gap-2"
+            style={{ background: '#fff', border: `1.5px solid ${C.haze}`, minHeight: '140px' }}
+          >
+            <span className="text-xl font-black" style={{ color: C.midnight }}>
+              {c.bento.freeTitle}
+            </span>
+            <p className="text-sm font-light" style={{ color: 'rgba(16,21,133,0.6)' }}>
+              {c.bento.freeDesc}
+            </p>
+          </div>
+
+          {/* No reg — haze */}
+          <div
+            className="md:col-span-1 rounded-3xl p-6 flex flex-col gap-2"
+            style={{ background: C.haze, minHeight: '140px' }}
+          >
+            <span className="text-xl font-black" style={{ color: C.midnight }}>
+              {c.bento.noregTitle}
+            </span>
+            <p className="text-sm font-light" style={{ color: 'rgba(16,21,133,0.6)' }}>
+              {c.bento.noregDesc}
+            </p>
+          </div>
+
+          {/* Groups — white */}
+          <div
+            className="md:col-span-2 rounded-3xl p-7 flex flex-col gap-3"
+            style={{ background: '#fff', border: `1.5px solid ${C.haze}`, minHeight: '160px' }}
+          >
+            <span className="text-xl font-black" style={{ color: C.midnight }}>
+              {c.bento.groupsTitle}
+            </span>
+            <p className="text-sm font-light leading-relaxed" style={{ color: 'rgba(16,21,133,0.6)' }}>
+              {c.bento.groupsDesc}
+            </p>
+            {/* Fake group pills */}
+            <div className="flex gap-2 flex-wrap mt-1">
+              {(lang === 'ru'
+                ? ['💪 Здоровье', '💼 Работа', '🌱 Личное']
+                : ['💪 Health', '💼 Work', '🌱 Personal']
+              ).map((g) => (
+                <span
+                  key={g}
+                  className="text-xs font-semibold px-3 py-1 rounded-xl"
+                  style={{ background: C.haze, color: C.midnight }}
+                >
+                  {g}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* No guilt — dusk, white text */}
+          <div
+            className="md:col-span-2 rounded-3xl p-7 flex flex-col gap-3"
+            style={{ background: C.dusk, minHeight: '160px' }}
+          >
+            <span className="text-xl font-black text-white">{c.bento.noguiltTitle}</span>
+            <p className="text-sm font-light leading-relaxed text-white/80">
+              {c.bento.noguiltDesc}
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── STORY — How anti-habits work ─────────────────────────────────── */}
+      <section
+        id="story"
+        className="px-5 py-20 md:py-28"
+        style={{ background: C.haze }}
+      >
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          {/* Text side */}
+          <div className="flex flex-col gap-6">
+            <h2
+              className="text-3xl md:text-4xl font-black leading-tight"
+              style={{ color: C.midnight }}
+            >
+              {c.storyTitle}
+            </h2>
+            <p className="text-base leading-relaxed font-light" style={{ color: 'rgba(16,21,133,0.7)' }}>
+              {c.storyP1}
+            </p>
+            <p className="text-base leading-relaxed font-light" style={{ color: 'rgba(16,21,133,0.7)' }}>
+              {c.storyP2}
+            </p>
+            <p className="text-base leading-relaxed font-light" style={{ color: 'rgba(16,21,133,0.7)' }}>
+              {c.storyP3}
+            </p>
+            <p
+              className="text-sm font-semibold px-4 py-3 rounded-2xl"
+              style={{ background: C.midnight, color: C.spark }}
+            >
+              {c.storyBadge}
+            </p>
+          </div>
+
+          {/* Fake UI mockup side */}
+          <div className="flex justify-center">
+            {/* Fake app shell */}
+            <div
+              className="rounded-3xl p-4 w-full max-w-sm flex flex-col gap-3"
+              style={{
+                background: '#fff',
+                boxShadow: '0 24px 64px rgba(16,21,133,0.14)',
+              }}
+            >
+              {/* App header */}
+              <div className="flex items-center justify-between px-2 py-1">
+                <span className="font-black text-base" style={{ color: C.midnight }}>
+                  {lang === 'ru' ? 'Привычка' : 'Ritualr'}
+                </span>
+                <div
+                  className="w-6 h-6 rounded-lg"
+                  style={{ background: C.spark }}
+                />
+              </div>
+
+              {/* Habit card (positive) */}
+              <div
+                className="rounded-2xl p-4 flex items-center justify-between"
+                style={{ background: C.haze }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
+                    style={{ background: C.midnight }}
+                  >
+                    🏃
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold" style={{ color: C.midnight }}>
+                      {lang === 'ru' ? 'Зарядка' : 'Morning run'}
+                    </div>
+                    <div className="text-xs" style={{ color: 'rgba(16,21,133,0.5)' }}>
+                      {lang === 'ru' ? '5 из 7 дней' : '5 of 7 days'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-xl font-black" style={{ color: C.dusk }}>5</span>
+                  <span className="text-xs" style={{ color: 'rgba(16,21,133,0.4)' }}>🔥</span>
+                </div>
+              </div>
+
+              {/* Anti-habit card */}
+              <div
+                className="rounded-2xl p-4 flex items-center justify-between"
+                style={{ background: C.midnight }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
+                    style={{ background: 'rgba(255,255,255,0.12)' }}
+                  >
+                    🚭
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white">
+                      {lang === 'ru' ? 'Не курю' : 'No smoking'}
+                    </div>
+                    <div className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                      {lang === 'ru' ? '7 дней чисто' : '7 days clean'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-xl font-black" style={{ color: C.spark }}>7</span>
+                  <span className="text-xs" style={{ color: C.spark }}>🔥</span>
+                </div>
+              </div>
+
+              {/* Day row */}
+              <div className="px-1 pb-1 flex gap-1">
+                {(lang === 'ru'
+                  ? ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+                  : ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+                ).map((d, i) => (
+                  <div key={`${d}-${i}`} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-xs" style={{ color: 'rgba(16,21,133,0.35)' }}>
+                      {d}
+                    </span>
+                    <div
+                      className="w-full h-1.5 rounded-full"
+                      style={{ background: i < 5 ? C.dusk : C.haze }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ──────────────────────────────────────────────────────────── */}
+      <section id="faq" className="px-5 py-20 md:py-28 max-w-2xl mx-auto">
+        <h2
+          className="text-3xl md:text-4xl font-black text-center mb-10"
+          style={{ color: C.midnight }}
+        >
+          {c.faqTitle}
+        </h2>
+        <div>
+          {c.faq.map((item) => (
+            <FaqItem key={item.q} q={item.q} a={item.a} />
+          ))}
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ────────────────────────────────────────────────────── */}
+      <section
+        id="cta"
+        className="px-5 py-24 md:py-32 text-center"
+        style={{ background: C.midnight }}
+      >
+        <div className="max-w-2xl mx-auto flex flex-col items-center gap-6">
+          <p
+            className="text-2xl md:text-3xl font-black leading-tight text-white"
+          >
+            {c.ctaHeadline}
+          </p>
+          <p className="text-lg font-light text-white/70">{c.ctaSub}</p>
+          <a
+            href="/app"
+            className="mt-2 inline-flex items-center px-8 py-4 rounded-2xl font-black text-base shadow-xl transition-transform hover:scale-105"
+            style={{ background: C.spark, color: C.midnight }}
+          >
+            {c.ctaBtn}
+          </a>
+        </div>
+      </section>
+
+      {/* ── FOOTER ───────────────────────────────────────────────────────── */}
+      <footer
+        className="px-5 py-8 flex flex-col md:flex-row items-center justify-between gap-3 text-sm"
+        style={{
+          background: '#0a0d4a',
+          color: 'rgba(255,255,255,0.4)',
+        }}
+      >
+        <span className="font-bold text-white/70">{c.appName}</span>
+        <span>{c.footerTagline}</span>
+        <a href="/app" className="hover:text-white/70 transition-colors">
+          {lang === 'ru' ? 'Открыть приложение →' : 'Open app →'}
+        </a>
+      </footer>
+    </div>
+  )
 }

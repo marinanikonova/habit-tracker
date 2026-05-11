@@ -81,7 +81,7 @@ export async function GET(req: Request) {
     })
 
     // 5. Set session cookie + clear state cookie + redirect to app
-    const res = NextResponse.redirect(appUrl, { status: 302 })
+    const res = NextResponse.redirect(`${appUrl}/app`, { status: 302 })
     res.headers.append('Set-Cookie', makeSessionCookie(token))
     res.headers.append(
       'Set-Cookie',

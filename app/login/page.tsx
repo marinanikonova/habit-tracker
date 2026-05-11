@@ -13,7 +13,7 @@ function LoginContent() {
 
   // Redirect if already logged in
   useEffect(() => {
-    fetch('/api/auth/me').then(r => { if (r.ok) router.replace('/') })
+    fetch('/api/auth/me').then(r => { if (r.ok) router.replace('/app') })
   }, [router])
 
   // Show error from Google OAuth redirect

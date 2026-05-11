@@ -1,253 +1,634 @@
-import type { Metadata } from 'next'
-import Link from 'next/link'
+'use client'
+
+import { useState } from 'react'
+import { useLanguage } from '@/lib/LanguageContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
-export const metadata: Metadata = {
-  title: 'Ritualr — The art of showing up',
-  description: 'Трекер привычек и анти-привычек. Начни без регистрации, войди через Telegram, увидь что меняешься. Бесплатно.',
-  openGraph: {
-    title: 'Ritualr — Привычка, которая меняет всё',
-    description: 'Трекер привычек и анти-привычек. Начни без регистрации, войди через Telegram, увидь что меняешься. Бесплатно.',
-  },
+// Brand colors
+const C = {
+  midnight: '#101585',
+  dusk: '#2D22C4',
+  lavender: '#A78BFA',
+  haze: '#EDE9FF',
+  spark: '#FFDD44',
 }
 
-const faq = [
-  {
-    q: 'А если я уже пробовал трекеры привычек и бросал?',
-    a: 'Именно для таких он и сделан. Ritualr убирает всё, что мешало продолжать: сложный интерфейс, обязательную регистрацию, платную подписку. Остаётся только: отметил — и дальше живёшь.',
+// ─── Copy ────────────────────────────────────────────────────────────────────
+
+const copy = {
+  ru: {
+    appName: 'Привычка',
+    navCta: 'Начать',
+    heroHeadline: 'Привычка,\nкоторая меняет всё',
+    heroSub:
+      'Бросить плохое так же важно, как начать хорошее. Привычка ведёт счёт и тому, и другому.',
+    heroCta: 'Начать сейчас — бесплатно',
+    // Bento
+    bentoTitle: 'Всё, что нужно. Ничего лишнего.',
+    bento: {
+      antiTitle: '🚫 Анти-привычки',
+      antiDesc:
+        'Первый трекер, где «не курить» и «бегать» стоят рядом. Каждый день — честный счёт.',
+      streakTitle: '🔥 7 дней подряд',
+      streakDesc: 'Серия горит. Не прерви.',
+      freeTitle: '₀ Бесплатно',
+      freeDesc: 'Без пробного периода. Навсегда.',
+      noregTitle: '⚡ Без регистрации',
+      noregDesc: 'Открой и начни. Данные в браузере.',
+      groupsTitle: '🗂 Группы',
+      groupsDesc: 'Здоровье, работа, личное — каждая привычка знает своё место.',
+      noguiltTitle: '💙 Без осуждения',
+      noguiltDesc: 'Сорвался? Начни заново. Без лекций.',
+    },
+    // Story
+    storyTitle: 'Как работают анти-привычки',
+    storyP1:
+      'Добавь то, от чего хочешь избавиться: курение, прокрастинация, фастфуд, телефон перед сном.',
+    storyP2: 'Каждый день приложение спрашивает одно: было сегодня или нет?',
+    storyP3:
+      'Если нет — серия растёт. Если да — обнуляется. Без осуждения, без лекций. Просто честный счёт.',
+    storyBadge: '7 дней чисто → значок. 30 дней → ты уже другой человек.',
+    mockLabel: 'Не курю',
+    mockDays: 'дней',
+    mockSince: 'Серия: 7',
+    // FAQ
+    faqTitle: 'Вопросы',
+    faq: [
+      {
+        q: 'Чем это отличается от Habitica или Streaks?',
+        a: 'Habitica — это RPG-игра с аватарами и гильдиями. Streaks — только iOS. Ни одно из них не делает анти-привычки нативно. Привычка — веб, работает на любом устройстве, без игровой шелухи.',
+      },
+      {
+        q: 'Я уже веду всё в Notion. Зачем мне ещё одно приложение?',
+        a: 'Notion не спросит тебя утром «курил сегодня?» и не покажет серию из 12 чистых дней. Это другой инструмент для другой задачи. Можно использовать оба.',
+      },
+      {
+        q: 'Данные сохранятся, если я закрою вкладку?',
+        a: 'Без входа — данные в браузере, не пропадут при закрытии вкладки. Войди через Google — и всё переедет в облако, будет доступно с любого устройства.',
+      },
+      {
+        q: 'Это бесплатно навсегда или будет подписка?',
+        a: 'Сейчас — бесплатно и без ограничений. Если появятся платные функции — базовый трекер останется бесплатным.',
+      },
+      {
+        q: 'А если я однажды сорвусь и не хочу это видеть?',
+        a: 'Можно не отмечать. Можно сбросить серию и начать заново. Привычка не ведёт журнал вины — только то, что ты сам решаешь отметить.',
+      },
+    ],
+    // CTA
+    ctaHeadline: 'Половина работы — в том, чего ты больше не делаешь.',
+    ctaSub: 'Начни считать обе половины.',
+    ctaBtn: 'Открыть и начать',
+    footerTagline: 'Трекер привычек и анти-привычек',
   },
-  {
-    q: 'Это бесплатно навсегда или потом появится подписка?',
-    a: 'Бесплатно, без рекламы, без скрытых условий. Никакого «первые 14 дней бесплатно». Просто бесплатно.',
+
+  en: {
+    appName: 'Ritualr',
+    navCta: 'Start',
+    heroHeadline: 'Repeat until\nit\'s you',
+    heroSub: 'Quitting bad habits counts as much as building good ones. Ritualr tracks both.',
+    heroCta: 'Start free — no sign-up needed',
+    // Bento
+    bentoTitle: 'Everything you need. Nothing you don\'t.',
+    bento: {
+      antiTitle: '🚫 Anti-habits',
+      antiDesc:
+        'The first tracker where "stop smoking" and "go running" live side by side. An honest count, every day.',
+      streakTitle: '🔥 7 days in a row',
+      streakDesc: 'Your streak is alive. Don\'t break it.',
+      freeTitle: '₀ Free forever',
+      freeDesc: 'No trial. No tiers. No catch.',
+      noregTitle: '⚡ No sign-up',
+      noregDesc: 'Open and start. Data lives in your browser.',
+      groupsTitle: '🗂 Groups',
+      groupsDesc: 'Health, work, personal — each habit knows where it belongs.',
+      noguiltTitle: '💙 No judgment',
+      noguiltDesc: 'Slipped? Start fresh. No lectures.',
+    },
+    // Story
+    storyTitle: 'How anti-habits work',
+    storyP1:
+      'Add what you want to quit: smoking, procrastination, junk food, phone before bed.',
+    storyP2: 'Every day, the app asks one thing: did it happen today, or not?',
+    storyP3:
+      'If not — the streak grows. If yes — it resets. No guilt trips, no lectures. Just an honest count.',
+    storyBadge: '7 days clean → badge. 30 days → you\'re already a different person.',
+    mockLabel: 'No smoking',
+    mockDays: 'days',
+    mockSince: 'Streak: 7',
+    // FAQ
+    faqTitle: 'Questions',
+    faq: [
+      {
+        q: 'How is this different from Habitica or Streaks?',
+        a: 'Habitica is an RPG game with avatars and guilds. Streaks is iOS-only. Neither treats anti-habits as a first-class feature. Ritualr works on any device, in any browser, without the game layer.',
+      },
+      {
+        q: 'I already track everything in Notion. Why switch?',
+        a: "Notion won't ask you \"did you smoke today?\" or show you a 12-day clean streak. Different tool, different job. You can use both.",
+      },
+      {
+        q: 'Will my data survive if I close the tab?',
+        a: 'Without sign-in — data lives in your browser and persists across sessions. Sign in with Google and everything moves to the cloud, available from any device.',
+      },
+      {
+        q: 'Is this really free forever?',
+        a: 'Right now — fully free, no limits. If paid features ever come, the core tracker stays free.',
+      },
+      {
+        q: "What if I slip and don't want to see it?",
+        a: "You don't have to mark it. You can reset a streak and start fresh. Ritualr doesn't keep a guilt log — only what you choose to record.",
+      },
+    ],
+    // CTA
+    ctaHeadline: 'Half the work is what you stopped doing.',
+    ctaSub: 'Start counting both halves.',
+    ctaBtn: 'Open and start',
+    footerTagline: 'Habit tracker and anti-habit tracker',
   },
-  {
-    q: 'Что будет если я не открою приложение несколько дней?',
-    a: 'Стрик прервётся, но история останется. Можно начать новую цепочку с сегодняшнего дня. Приложение не осуждает и не шлёт push-уведомления каждые два часа.',
-  },
-  {
-    q: 'Мои данные в безопасности?',
-    a: 'Если входишь через Telegram — данные хранятся в облаке. Если без входа — только в твоём браузере, никуда не передаются. Данные не продаются, реклама не показывается.',
-  },
-  {
-    q: 'А если у меня нет Telegram?',
-    a: 'Начни без входа прямо сейчас — данные сохранятся в браузере. Когда появится Telegram — зайди, история подхватится. Или работай без входа постоянно: это тоже работает.',
-  },
-]
+} as const
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div
+      className="border-b last:border-b-0 cursor-pointer"
+      style={{ borderColor: 'rgba(16,21,133,0.12)' }}
+      onClick={() => setOpen((v) => !v)}
+    >
+      <div className="flex items-center justify-between py-5 gap-4">
+        <span className="font-semibold text-base leading-snug" style={{ color: C.midnight }}>
+          {q}
+        </span>
+        <span
+          className="text-xl flex-shrink-0 transition-transform duration-200"
+          style={{
+            color: C.dusk,
+            transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
+          }}
+        >
+          +
+        </span>
+      </div>
+      {open && (
+        <p className="pb-5 text-sm leading-relaxed" style={{ color: 'rgba(16,21,133,0.65)' }}>
+          {a}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function MockHabitCard({ label, days, streak }: { label: string; days: string; streak: string }) {
+  return (
+    <div
+      className="rounded-2xl p-5 flex flex-col gap-3 shadow-lg w-full max-w-xs"
+      style={{ background: '#fff', border: `1.5px solid ${C.haze}` }}
+    >
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-base"
+            style={{ background: C.midnight, color: '#fff' }}
+          >
+            🚫
+          </div>
+          <span className="font-bold text-sm" style={{ color: C.midnight }}>
+            {label}
+          </span>
+        </div>
+        <span
+          className="text-xs font-semibold px-2 py-1 rounded-lg"
+          style={{ background: C.haze, color: C.dusk }}
+        >
+          {streak}
+        </span>
+      </div>
+
+      {/* Streak counter */}
+      <div className="flex items-end gap-2">
+        <span className="text-5xl font-black leading-none" style={{ color: C.midnight }}>
+          7
+        </span>
+        <span className="text-lg mb-1" style={{ color: C.lavender }}>
+          🔥
+        </span>
+        <span className="text-sm mb-1 font-medium" style={{ color: 'rgba(16,21,133,0.5)' }}>
+          {days}
+        </span>
+      </div>
+
+      {/* Day dots */}
+      <div className="flex gap-1.5 mt-1">
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => (
+          <div
+            key={d}
+            className="flex-1 h-2 rounded-full"
+            style={{
+              background: i < 7 ? C.dusk : C.haze,
+              opacity: i < 7 ? 1 : 0.35,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
-  return (
-    <main className="min-h-screen" style={{ backgroundColor: '#EDE9FF' }}>
+  const { lang } = useLanguage()
+  const c = copy[lang]
 
-      {/* ── Nav ── */}
-      <nav style={{ backgroundColor: '#101585' }} className="sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="text-lg font-bold text-white tracking-tight">Ritualr</span>
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher />
-            <Link
-              href="/"
-              className="text-sm font-semibold px-4 py-2 rounded-xl transition-all hover:opacity-90"
-              style={{ backgroundColor: '#FFDD44', color: '#101585' }}
-            >
-              Открыть приложение
-            </Link>
-          </div>
+  return (
+    <div className="min-h-screen bg-white font-sans antialiased">
+      {/* ── NAV ─────────────────────────────────────────────────────────── */}
+      <nav
+        className="sticky top-0 z-50 flex items-center justify-between px-5 py-3"
+        style={{
+          background: 'rgba(255,255,255,0.9)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(16,21,133,0.08)',
+        }}
+      >
+        <a href="/" className="font-black text-xl tracking-tight" style={{ color: C.midnight }}>
+          {c.appName}
+        </a>
+
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+          <a
+            href="/"
+            className="text-sm font-semibold px-4 py-2 rounded-xl transition-opacity hover:opacity-80"
+            style={{ background: C.midnight, color: '#fff' }}
+          >
+            {c.navCta}
+          </a>
         </div>
       </nav>
 
-      {/* ── Hero ── */}
-      <section className="max-w-2xl mx-auto px-6 pt-16 pb-20 text-center">
+      {/* ── HERO ─────────────────────────────────────────────────────────── */}
+      <section
+        id="hero"
+        className="relative overflow-hidden px-5 pt-20 pb-24 md:pt-28 md:pb-32 flex flex-col items-center text-center"
+      >
+        {/* Background glow */}
         <div
-          className="inline-block text-xs font-semibold px-3 py-1 rounded-full mb-8 tracking-wide uppercase"
-          style={{ backgroundColor: '#A78BFA', color: '#fff' }}
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `radial-gradient(ellipse 80% 60% at 50% 0%, ${C.haze} 0%, transparent 70%)`,
+          }}
+        />
+
+        <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center gap-6">
+          <h1
+            className="text-4xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight"
+            style={{ color: C.midnight, whiteSpace: 'pre-line' }}
+          >
+            {c.heroHeadline}
+          </h1>
+
+          <p
+            className="text-lg md:text-xl font-light max-w-lg leading-relaxed"
+            style={{ color: 'rgba(16,21,133,0.65)' }}
+          >
+            {c.heroSub}
+          </p>
+
+          <a
+            href="/"
+            className="mt-2 inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-base shadow-lg transition-transform hover:scale-105"
+            style={{ background: C.spark, color: C.midnight }}
+          >
+            {c.heroCta}
+          </a>
+
+          {/* Mini visual — fake app screenshot */}
+          <div className="mt-8 w-full max-w-sm mx-auto">
+            <MockHabitCard
+              label={c.mockLabel}
+              days={c.mockDays}
+              streak={c.mockSince}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ── BENTO GRID ───────────────────────────────────────────────────── */}
+      <section
+        id="bento"
+        className="px-5 py-20 md:py-28 max-w-5xl mx-auto"
+      >
+        <h2
+          className="text-3xl md:text-4xl font-black text-center mb-12"
+          style={{ color: C.midnight }}
         >
-          Бесплатно · Без регистрации · Работает в браузере
-        </div>
-        <h1
-          className="text-5xl sm:text-6xl font-extrabold leading-tight mb-4"
-          style={{ color: '#101585' }}
-        >
-          The art of<br />showing up.
-        </h1>
-        <p className="text-lg mb-3 font-semibold" style={{ color: '#2D22C4' }}>
-          «Привычка, которая меняет всё.»
-        </p>
-        <p className="text-base mb-10 max-w-md mx-auto" style={{ color: '#2D22C4', opacity: 0.75 }}>
-          Трекер привычек и анти-привычек: начни без регистрации, войди через Telegram, увидь что меняешься.
-        </p>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 font-bold text-base px-9 py-4 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl"
-          style={{ backgroundColor: '#101585', color: '#fff' }}
-        >
-          Начать прямо сейчас — бесплатно →
-        </Link>
-        <p className="text-xs mt-4" style={{ color: '#A78BFA' }}>Без карты, без email, без паролей</p>
-      </section>
+          {c.bentoTitle}
+        </h2>
 
-      {/* ── Section 1 ── */}
-      <section className="max-w-2xl mx-auto px-6 py-4">
-        <div className="bg-white rounded-3xl p-8 shadow-sm" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
-          <div className="text-3xl mb-4">😮‍💨</div>
-          <h2 className="text-2xl font-bold mb-4" style={{ color: '#101585' }}>Ты узнаёшь себя?</h2>
-          <div className="space-y-4 leading-relaxed" style={{ color: '#2D22C4', opacity: 0.8 }}>
-            <p>
-              Четверг вечером. Приложение для привычек не открывалось уже 9 дней.
-              Ты помнишь, как скачивал его в воскресенье с твёрдым намерением — «в этот раз всё серьёзно».
-            </p>
-            <p>
-              Так было с Habitica. С заметкой в Notion. С тем приложением, у которого 4.8 в магазине.
-            </p>
-            <p>
-              Каждый раз одно и то же: первые дни горишь, потом пропускаешь один день, потом — ещё один,
-              а потом просто забываешь открыть. И привычка снова не сложилась.
-            </p>
-            <p className="font-semibold" style={{ color: '#101585', opacity: 1 }}>
-              Проблема не в тебе. Проблема в том, что приложения делают отслеживание привычек сложнее, чем сами привычки.
+        {/*
+          Desktop grid: 4 columns
+          Row 1: anti (col-span-2) | streak (col-span-2, row-span-2)
+          Row 2: free (col-span-1) | noreg (col-span-1)
+          Row 3: groups (col-span-2) | noguilt (col-span-2)
+        */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+          {/* Anti-habits — large, dark */}
+          <div
+            className="md:col-span-2 rounded-3xl p-7 flex flex-col gap-3"
+            style={{ background: C.midnight, minHeight: '220px' }}
+          >
+            <span className="text-2xl font-black" style={{ color: C.spark }}>
+              {c.bento.antiTitle}
+            </span>
+            <p className="text-base font-light leading-relaxed" style={{ color: 'rgba(255,255,255,0.78)' }}>
+              {c.bento.antiDesc}
             </p>
           </div>
-        </div>
-      </section>
 
-      {/* ── Section 2 ── */}
-      <section className="max-w-2xl mx-auto px-6 py-4">
-        <div className="bg-white rounded-3xl p-8 shadow-sm" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
-          <div className="text-3xl mb-4">⚡</div>
-          <h2 className="text-2xl font-bold mb-4" style={{ color: '#101585' }}>
-            Что если отметить сегодняшний день займёт 10 секунд?
-          </h2>
-          <div className="space-y-4 leading-relaxed" style={{ color: '#2D22C4', opacity: 0.8 }}>
-            <p className="font-semibold" style={{ color: '#101585', opacity: 1 }}>Открыл. Поставил галочку. Закрыл.</p>
-            <p>
-              Никаких уровней и квестов. Никакой базы в Notion, которую сначала надо настроить.
-              Никакой формы регистрации, которую лень заполнять в 11 вечера.
-            </p>
-            <p>Просто: сделал — отметил. Не сделал плохое — тоже отметил.</p>
-            <p>
-              Цепочка растёт. Через неделю ты видишь 7 закрытых дней. Через месяц — 24 из 30.
-              И это уже не «я стараюсь», это факт.
-            </p>
-          </div>
-          {/* visual chain */}
-          <div className="mt-6 flex items-center gap-2">
-            {Array.from({ length: 7 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex-1 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
-                style={{
-                  backgroundColor: i < 6 ? '#101585' : '#EDE9FF',
-                  color: i < 6 ? '#fff' : '#A78BFA',
-                }}
-              >
-                {i < 6 ? '✓' : '·'}
-              </div>
-            ))}
-          </div>
-          <p className="text-xs mt-2 text-center" style={{ color: '#A78BFA' }}>6 дней подряд — и ты уже в ритме</p>
-        </div>
-      </section>
-
-      {/* ── Section 3: Anti-habits ── */}
-      <section className="max-w-2xl mx-auto px-6 py-4">
-        <div className="rounded-3xl p-8 shadow-sm" style={{ backgroundColor: '#101585', border: '1px solid rgba(167,139,250,0.15)' }}>
-          <div className="text-3xl mb-4">🚫</div>
-          <h2 className="text-2xl font-bold mb-4 text-white">
-            Анти-привычки: то, чего не умеют другие
-          </h2>
-          <div className="space-y-4 leading-relaxed" style={{ color: '#A78BFA' }}>
-            <p>Большинство трекеров работают только в одну сторону: добавь хорошее.</p>
-            <p className="font-semibold text-white">Но что если твоя задача — перестать делать плохое?</p>
-            <p>
-              В Ritualr есть анти-привычки. Не ел сладкое — отметил.
-              Не открывал Instagram после 22:00 — отметил. Не курил — отметил.
-            </p>
-            <p>
-              Каждый день без плохой привычки становится видимым. Стрик из «не курил» растёт так же,
-              как стрик из «ходил на прогулку». Это не просто галочка — это подтверждение, что контроль возможен.
-            </p>
-          </div>
-          <div className="mt-6 grid grid-cols-3 gap-3">
-            {['🚬 Не курил', '🍰 Без сладкого', '📱 Без соцсетей'].map(item => (
-              <div
-                key={item}
-                className="rounded-xl px-3 py-3 text-center text-sm font-medium"
-                style={{ backgroundColor: '#2D22C4', color: '#A78BFA' }}
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Section 4: Telegram ── */}
-      <section className="max-w-2xl mx-auto px-6 py-4">
-        <div className="bg-white rounded-3xl p-8 shadow-sm" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
-          <div className="text-3xl mb-4">✈️</div>
-          <h2 className="text-2xl font-bold mb-4" style={{ color: '#101585' }}>Вход через Telegram — и всё</h2>
-          <div className="space-y-4 leading-relaxed" style={{ color: '#2D22C4', opacity: 0.8 }}>
-            <p className="font-semibold" style={{ color: '#101585', opacity: 1 }}>Никаких паролей. Никаких писем «подтвердите почту».</p>
-            <p>
-              Нажал «Войти через Telegram» — и через 5 секунд твои привычки синхронизированы в облаке.
-              История не потеряется, если сменишь телефон или очистишь браузер.
-            </p>
-            <p>
-              Хочешь попробовать без входа — можно. Данные сохранятся в браузере.
-              Зайдёшь через Telegram позже — история подхватится.
-            </p>
-            <p>Работает на любом устройстве с браузером: телефон, планшет, ноутбук.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Tagline break ── */}
-      <section className="max-w-2xl mx-auto px-6 py-10 text-center">
-        <p className="text-2xl font-bold" style={{ color: '#2D22C4' }}>
-          "Repeat until it's you."
-        </p>
-      </section>
-
-      {/* ── FAQ ── */}
-      <section className="max-w-2xl mx-auto px-6 pb-10">
-        <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: '#101585' }}>Частые вопросы</h2>
-        <div className="space-y-3">
-          {faq.map(({ q, a }) => (
-            <div key={q} className="bg-white rounded-2xl p-6 shadow-sm" style={{ border: '1px solid rgba(167,139,250,0.25)' }}>
-              <p className="font-semibold mb-2" style={{ color: '#101585' }}>{q}</p>
-              <p className="text-sm leading-relaxed" style={{ color: '#2D22C4', opacity: 0.75 }}>{a}</p>
+          {/* Streak — tall, lavender */}
+          <div
+            className="md:col-span-2 md:row-span-2 rounded-3xl p-7 flex flex-col justify-between"
+            style={{ background: C.lavender, minHeight: '300px' }}
+          >
+            <div className="flex flex-col gap-3">
+              <span className="text-2xl font-black text-white">{c.bento.streakTitle}</span>
+              <p className="text-base font-light leading-relaxed text-white/80">
+                {c.bento.streakDesc}
+              </p>
             </div>
+            {/* Inline streak visual */}
+            <div className="flex flex-col gap-2 mt-6">
+              <div className="flex items-end gap-2">
+                <span className="text-6xl font-black text-white leading-none">7</span>
+                <span className="text-3xl mb-1">🔥</span>
+              </div>
+              <div className="flex gap-1.5">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 h-2 rounded-full"
+                    style={{ background: 'rgba(255,255,255,0.9)' }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Free — white */}
+          <div
+            className="md:col-span-1 rounded-3xl p-6 flex flex-col gap-2"
+            style={{ background: '#fff', border: `1.5px solid ${C.haze}`, minHeight: '140px' }}
+          >
+            <span className="text-xl font-black" style={{ color: C.midnight }}>
+              {c.bento.freeTitle}
+            </span>
+            <p className="text-sm font-light" style={{ color: 'rgba(16,21,133,0.6)' }}>
+              {c.bento.freeDesc}
+            </p>
+          </div>
+
+          {/* No reg — haze */}
+          <div
+            className="md:col-span-1 rounded-3xl p-6 flex flex-col gap-2"
+            style={{ background: C.haze, minHeight: '140px' }}
+          >
+            <span className="text-xl font-black" style={{ color: C.midnight }}>
+              {c.bento.noregTitle}
+            </span>
+            <p className="text-sm font-light" style={{ color: 'rgba(16,21,133,0.6)' }}>
+              {c.bento.noregDesc}
+            </p>
+          </div>
+
+          {/* Groups — white */}
+          <div
+            className="md:col-span-2 rounded-3xl p-7 flex flex-col gap-3"
+            style={{ background: '#fff', border: `1.5px solid ${C.haze}`, minHeight: '160px' }}
+          >
+            <span className="text-xl font-black" style={{ color: C.midnight }}>
+              {c.bento.groupsTitle}
+            </span>
+            <p className="text-sm font-light leading-relaxed" style={{ color: 'rgba(16,21,133,0.6)' }}>
+              {c.bento.groupsDesc}
+            </p>
+            {/* Fake group pills */}
+            <div className="flex gap-2 flex-wrap mt-1">
+              {(lang === 'ru'
+                ? ['💪 Здоровье', '💼 Работа', '🌱 Личное']
+                : ['💪 Health', '💼 Work', '🌱 Personal']
+              ).map((g) => (
+                <span
+                  key={g}
+                  className="text-xs font-semibold px-3 py-1 rounded-xl"
+                  style={{ background: C.haze, color: C.midnight }}
+                >
+                  {g}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* No guilt — dusk, white text */}
+          <div
+            className="md:col-span-2 rounded-3xl p-7 flex flex-col gap-3"
+            style={{ background: C.dusk, minHeight: '160px' }}
+          >
+            <span className="text-xl font-black text-white">{c.bento.noguiltTitle}</span>
+            <p className="text-sm font-light leading-relaxed text-white/80">
+              {c.bento.noguiltDesc}
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── STORY — How anti-habits work ─────────────────────────────────── */}
+      <section
+        id="story"
+        className="px-5 py-20 md:py-28"
+        style={{ background: C.haze }}
+      >
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          {/* Text side */}
+          <div className="flex flex-col gap-6">
+            <h2
+              className="text-3xl md:text-4xl font-black leading-tight"
+              style={{ color: C.midnight }}
+            >
+              {c.storyTitle}
+            </h2>
+            <p className="text-base leading-relaxed font-light" style={{ color: 'rgba(16,21,133,0.7)' }}>
+              {c.storyP1}
+            </p>
+            <p className="text-base leading-relaxed font-light" style={{ color: 'rgba(16,21,133,0.7)' }}>
+              {c.storyP2}
+            </p>
+            <p className="text-base leading-relaxed font-light" style={{ color: 'rgba(16,21,133,0.7)' }}>
+              {c.storyP3}
+            </p>
+            <p
+              className="text-sm font-semibold px-4 py-3 rounded-2xl"
+              style={{ background: C.midnight, color: C.spark }}
+            >
+              {c.storyBadge}
+            </p>
+          </div>
+
+          {/* Fake UI mockup side */}
+          <div className="flex justify-center">
+            {/* Fake app shell */}
+            <div
+              className="rounded-3xl p-4 w-full max-w-sm flex flex-col gap-3"
+              style={{
+                background: '#fff',
+                boxShadow: '0 24px 64px rgba(16,21,133,0.14)',
+              }}
+            >
+              {/* App header */}
+              <div className="flex items-center justify-between px-2 py-1">
+                <span className="font-black text-base" style={{ color: C.midnight }}>
+                  {lang === 'ru' ? 'Привычка' : 'Ritualr'}
+                </span>
+                <div
+                  className="w-6 h-6 rounded-lg"
+                  style={{ background: C.spark }}
+                />
+              </div>
+
+              {/* Habit card (positive) */}
+              <div
+                className="rounded-2xl p-4 flex items-center justify-between"
+                style={{ background: C.haze }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
+                    style={{ background: C.midnight }}
+                  >
+                    🏃
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold" style={{ color: C.midnight }}>
+                      {lang === 'ru' ? 'Зарядка' : 'Morning run'}
+                    </div>
+                    <div className="text-xs" style={{ color: 'rgba(16,21,133,0.5)' }}>
+                      {lang === 'ru' ? '5 из 7 дней' : '5 of 7 days'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-xl font-black" style={{ color: C.dusk }}>5</span>
+                  <span className="text-xs" style={{ color: 'rgba(16,21,133,0.4)' }}>🔥</span>
+                </div>
+              </div>
+
+              {/* Anti-habit card */}
+              <div
+                className="rounded-2xl p-4 flex items-center justify-between"
+                style={{ background: C.midnight }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
+                    style={{ background: 'rgba(255,255,255,0.12)' }}
+                  >
+                    🚭
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white">
+                      {lang === 'ru' ? 'Не курю' : 'No smoking'}
+                    </div>
+                    <div className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                      {lang === 'ru' ? '7 дней чисто' : '7 days clean'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-xl font-black" style={{ color: C.spark }}>7</span>
+                  <span className="text-xs" style={{ color: C.spark }}>🔥</span>
+                </div>
+              </div>
+
+              {/* Day row */}
+              <div className="px-1 pb-1 flex gap-1">
+                {(lang === 'ru'
+                  ? ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+                  : ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+                ).map((d, i) => (
+                  <div key={`${d}-${i}`} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-xs" style={{ color: 'rgba(16,21,133,0.35)' }}>
+                      {d}
+                    </span>
+                    <div
+                      className="w-full h-1.5 rounded-full"
+                      style={{ background: i < 5 ? C.dusk : C.haze }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ──────────────────────────────────────────────────────────── */}
+      <section id="faq" className="px-5 py-20 md:py-28 max-w-2xl mx-auto">
+        <h2
+          className="text-3xl md:text-4xl font-black text-center mb-10"
+          style={{ color: C.midnight }}
+        >
+          {c.faqTitle}
+        </h2>
+        <div>
+          {c.faq.map((item) => (
+            <FaqItem key={item.q} q={item.q} a={item.a} />
           ))}
         </div>
       </section>
 
-      {/* ── Final CTA ── */}
-      <section className="max-w-2xl mx-auto px-6 pb-20 text-center">
-        <div
-          className="rounded-3xl p-10"
-          style={{ background: 'linear-gradient(135deg, #101585 0%, #2D22C4 100%)' }}
-        >
-          <div
-            className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 tracking-widest uppercase"
-            style={{ backgroundColor: '#FFDD44', color: '#101585' }}
+      {/* ── FINAL CTA ────────────────────────────────────────────────────── */}
+      <section
+        id="cta"
+        className="px-5 py-24 md:py-32 text-center"
+        style={{ background: C.midnight }}
+      >
+        <div className="max-w-2xl mx-auto flex flex-col items-center gap-6">
+          <p
+            className="text-2xl md:text-3xl font-black leading-tight text-white"
           >
-            Бесплатно навсегда
-          </div>
-          <h2 className="text-3xl font-extrabold text-white mb-3">
-            Начни сегодня — не в понедельник
-          </h2>
-          <p className="mb-8" style={{ color: '#A78BFA' }}>
-            Первая привычка добавляется за 30 секунд. Без регистрации, без подписки.
+            {c.ctaHeadline}
           </p>
-          <Link
+          <p className="text-lg font-light text-white/70">{c.ctaSub}</p>
+          <a
             href="/"
-            className="inline-flex items-center gap-2 font-bold text-base px-8 py-4 rounded-2xl shadow-lg transition-all hover:scale-105"
-            style={{ backgroundColor: '#FFDD44', color: '#101585' }}
+            className="mt-2 inline-flex items-center px-8 py-4 rounded-2xl font-black text-base shadow-xl transition-transform hover:scale-105"
+            style={{ background: C.spark, color: C.midnight }}
           >
-            Открыть Ritualr — это бесплатно →
-          </Link>
+            {c.ctaBtn}
+          </a>
         </div>
       </section>
 
-    </main>
+      {/* ── FOOTER ───────────────────────────────────────────────────────── */}
+      <footer
+        className="px-5 py-8 flex flex-col md:flex-row items-center justify-between gap-3 text-sm"
+        style={{
+          background: '#0a0d4a',
+          color: 'rgba(255,255,255,0.4)',
+        }}
+      >
+        <span className="font-bold text-white/70">{c.appName}</span>
+        <span>{c.footerTagline}</span>
+        <a href="/" className="hover:text-white/70 transition-colors">
+          {lang === 'ru' ? 'Открыть приложение →' : 'Open app →'}
+        </a>
+      </footer>
+    </div>
   )
 }
