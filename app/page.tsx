@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useLanguage } from '@/lib/LanguageContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
@@ -19,10 +19,15 @@ const copy = {
   ru: {
     appName: 'Привычка',
     navCta: 'Начать',
-    heroHeadline: 'Привычка,\nкоторая меняет всё',
+    heroBadge: '✦ Привычка, которая меняет всё',
+    heroHeadline: 'Бросить плохое\nтак же важно,\nкак начать хорошее',
     heroSub:
-      'Бросить плохое так же важно, как начать хорошее. Привычка ведёт счёт и тому, и другому.',
-    heroCta: 'Начать сейчас — бесплатно',
+      'Привычка ведёт счёт всему — и полезному, и тому, что тебе уже мешает',
+    heroCta: 'Добавить первую привычку',
+    heroTrust: 'Создай первую привычку за 30 секунд — она останется в браузере даже без входа',
+    heroDay: 'День 0 из 7. Начни сегодня — и к воскресенью у тебя будет неделя',
+    midCtaBtn: 'Добавить первую привычку',
+    statsLabel: 'привычек уже создано',
     // Bento
     bentoTitle: 'Всё, что нужно. Ничего лишнего.',
     bento: {
@@ -31,7 +36,7 @@ const copy = {
         'Первый трекер, где «не курить» и «бегать» стоят рядом. Каждый день — честный счёт.',
       streakTitle: '🔥 7 дней подряд',
       streakDesc: 'Серия горит. Не прерви.',
-      freeTitle: '₀ Бесплатно',
+      freeTitle: 'Бесплатно',
       freeDesc: 'Без пробного периода. Навсегда.',
       noregTitle: '⚡ Без регистрации',
       noregDesc: 'Открой и начни. Данные в браузере.',
@@ -46,8 +51,8 @@ const copy = {
       'Добавь то, от чего хочешь избавиться: курение, прокрастинация, фастфуд, телефон перед сном.',
     storyP2: 'Каждый день приложение спрашивает одно: было сегодня или нет?',
     storyP3:
-      'Если нет — серия растёт. Если да — обнуляется. Без осуждения, без лекций. Просто честный счёт.',
-    storyBadge: '7 дней чисто → значок. 30 дней → ты уже другой человек.',
+      'Если нет — серия растёт. Если да — обнуляется. Без осуждения, просто честный счёт.',
+    storyBadge: '7 дней чисто → значок. 30 дней → ты уже другой человек',
     mockLabel: 'Не курю',
     mockDays: 'дней',
     mockSince: 'Серия: 7',
@@ -76,18 +81,23 @@ const copy = {
       },
     ],
     // CTA
-    ctaHeadline: 'Половина работы — в том, чего ты больше не делаешь.',
-    ctaSub: 'Начни считать обе половины.',
-    ctaBtn: 'Открыть и начать',
+    ctaHeadline: 'Половина работы — в том, чего ты больше не делаешь',
+    ctaSub: 'Начни считать обе половины',
+    ctaBtn: 'Попробовать один день',
     footerTagline: 'Трекер привычек и анти-привычек',
   },
 
   en: {
     appName: 'Ritualr',
     navCta: 'Start',
-    heroHeadline: 'Repeat until\nit\'s you',
+    heroBadge: '✦ Repeat until it\'s you',
+    heroHeadline: 'Quitting is\na habit too',
     heroSub: 'Quitting bad habits counts as much as building good ones. Ritualr tracks both.',
-    heroCta: 'Start free — no sign-up needed',
+    heroCta: 'Add your first habit',
+    heroTrust: 'Create your first habit in 30 seconds — it stays in your browser, no sign-up needed',
+    heroDay: 'Day 0 of 7. Start today — by Sunday you\'ll have a full week',
+    midCtaBtn: 'Add your first habit',
+    statsLabel: 'habits already tracked',
     // Bento
     bentoTitle: 'Everything you need. Nothing you don\'t.',
     bento: {
@@ -109,10 +119,10 @@ const copy = {
     storyTitle: 'How anti-habits work',
     storyP1:
       'Add what you want to quit: smoking, procrastination, junk food, phone before bed.',
-    storyP2: 'Every day, the app asks one thing: did it happen today, or not?',
+    storyP2: 'Each day the app asks one simple question: Did you do it today?',
     storyP3:
-      'If not — the streak grows. If yes — it resets. No guilt trips, no lectures. Just an honest count.',
-    storyBadge: '7 days clean → badge. 30 days → you\'re already a different person.',
+      'If not, your streak grows. If yes, it resets. No guilt trips, just an honest count.',
+    storyBadge: '7 days clean → badge. 30 days → you\'re already a different person',
     mockLabel: 'No smoking',
     mockDays: 'days',
     mockSince: 'Streak: 7',
@@ -141,9 +151,9 @@ const copy = {
       },
     ],
     // CTA
-    ctaHeadline: 'Half the work is what you stopped doing.',
-    ctaSub: 'Start counting both halves.',
-    ctaBtn: 'Open and start',
+    ctaHeadline: 'Build good habits. Break bad ones.\nTrack both.',
+    ctaSub: '',
+    ctaBtn: 'Add your first (anti)-habit',
     footerTagline: 'Habit tracker and anti-habit tracker',
   },
 } as const
@@ -163,7 +173,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
           {q}
         </span>
         <span
-          className="text-xl flex-shrink-0 transition-transform duration-200"
+          className="text-xl flex-shrink-0 transition-transform duration-200 select-none cursor-pointer"
           style={{
             color: C.dusk,
             transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
@@ -181,59 +191,185 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   )
 }
 
-function MockHabitCard({ label, days, streak }: { label: string; days: string; streak: string }) {
+function PhoneMockup({ lang }: { lang: 'ru' | 'en' }) {
+  return (
+    <div className="relative select-none" style={{ width: 320, height: 380 }}>
+
+      {/* Ambient glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at 60% 40%, ${C.lavender}60 0%, transparent 70%)`,
+          filter: 'blur(32px)',
+        }}
+      />
+
+      {/* Card 3 — back, rotated left */}
+      <div
+        className="absolute rounded-3xl p-4 flex items-center gap-3"
+        style={{
+          width: 260,
+          top: 60, left: 0,
+          background: '#fff',
+          boxShadow: '0 8px 32px rgba(16,21,133,0.10)',
+          transform: 'rotate(-6deg)',
+          opacity: 0.6,
+        }}
+      >
+        <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg shrink-0" style={{ background: C.haze }}>📵</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold truncate" style={{ color: C.midnight }}>
+            {lang === 'ru' ? 'Меньше экрана' : 'Less screen time'}
+          </div>
+          <div className="text-xs mt-0.5" style={{ color: 'rgba(16,21,133,0.4)' }}>
+            {lang === 'ru' ? '3 дня подряд' : '3 days in a row'}
+          </div>
+        </div>
+      </div>
+
+      {/* Card 2 — anti-habit, rotated right */}
+      <div
+        className="absolute rounded-3xl p-4 flex items-center gap-3"
+        style={{
+          width: 270,
+          top: 140, right: 0,
+          background: `linear-gradient(135deg, ${C.midnight} 0%, ${C.dusk} 100%)`,
+          boxShadow: '0 16px 48px rgba(16,21,133,0.35)',
+          transform: 'rotate(4deg)',
+        }}
+      >
+        <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg shrink-0" style={{ background: 'rgba(255,255,255,0.12)' }}>🚭</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-white">
+            {lang === 'ru' ? 'Не курю' : 'No smoking'}
+          </div>
+          <div className="text-xs mt-0.5" style={{ color: C.lavender }}>
+            {lang === 'ru' ? '7 дней чисто' : '7 days clean'}
+          </div>
+        </div>
+        <div className="flex items-baseline gap-1 shrink-0">
+          <span className="text-2xl font-black leading-none" style={{ color: C.spark }}>7</span>
+          <span className="text-base">🔥</span>
+        </div>
+      </div>
+
+      {/* Card 1 — habit, center front */}
+      <div
+        className="absolute rounded-3xl p-4 flex items-center gap-3"
+        style={{
+          width: 280,
+          top: 30, left: 20,
+          background: '#fff',
+          boxShadow: '0 20px 60px rgba(16,21,133,0.18)',
+          transform: 'rotate(-1deg)',
+          zIndex: 10,
+        }}
+      >
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0" style={{ background: C.haze }}>🏃</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold" style={{ color: C.midnight }}>
+            {lang === 'ru' ? 'Утренняя пробежка' : 'Morning run'}
+          </div>
+          <div className="flex items-center gap-1.5 mt-1">
+            {[1,2,3,4,5,6,7].map(i => (
+              <div key={i} className="rounded-full flex-1" style={{ height: 5, background: i <= 5 ? C.dusk : 'rgba(16,21,133,0.12)' }} />
+            ))}
+          </div>
+          <div className="text-xs mt-1" style={{ color: 'rgba(16,21,133,0.4)' }}>
+            {lang === 'ru' ? '5 из 7 дней' : '5 of 7 days'}
+          </div>
+        </div>
+        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: C.dusk }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+      </div>
+
+      {/* Streak pill — floating badge */}
+      <div
+        className="absolute rounded-2xl px-4 py-2 flex items-center gap-2"
+        style={{
+          bottom: 10, left: '50%', transform: 'translateX(-50%)',
+          background: `linear-gradient(135deg, ${C.spark}22, ${C.spark}10)`,
+          border: `1px solid ${C.spark}50`,
+          backdropFilter: 'blur(8px)',
+          boxShadow: '0 4px 16px rgba(255,221,68,0.15)',
+          zIndex: 20,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <span className="text-base">🏆</span>
+        <span className="text-xs font-bold" style={{ color: C.midnight }}>
+          {lang === 'ru' ? 'Серия 5 дней' : '5-day streak'}
+        </span>
+      </div>
+
+    </div>
+  )
+}
+
+function SocialProofTicker({ lang }: { lang: 'ru' | 'en' }) {
+  const [count, setCount] = React.useState<number | null>(null)
+
+  React.useEffect(() => {
+    fetch('/api/stats')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.habitCount) setCount(d.habitCount) })
+      .catch(() => {})
+  }, [])
+
+  const items = lang === 'ru' ? [
+    { icon: '🔥', text: count ? `${count} привычек создано` : 'Привычки и анти-привычки' },
+    { icon: '✦', text: 'Работает без регистрации' },
+    { icon: '📅', text: 'Отслеживай хорошее и плохое' },
+    { icon: '✦', text: 'Серии и прогресс за неделю' },
+    { icon: '🚫', text: 'Брось плохое — это тоже победа' },
+    { icon: '✦', text: 'Сохраняется в браузере' },
+  ] : [
+    { icon: '🔥', text: count ? `${count} habits created` : 'Habits & anti-habits' },
+    { icon: '✦', text: 'No sign-up required' },
+    { icon: '📅', text: 'Track good and bad habits' },
+    { icon: '✦', text: 'Streaks & weekly progress' },
+    { icon: '🚫', text: 'Quitting counts too' },
+    { icon: '✦', text: 'Saved in your browser' },
+  ]
+
+  // Duplicate for seamless loop
+  const ticker = [...items, ...items]
+
   return (
     <div
-      className="rounded-2xl p-5 flex flex-col gap-3 shadow-lg w-full max-w-xs"
-      style={{ background: '#fff', border: `1.5px solid ${C.haze}` }}
+      className="relative overflow-hidden py-3"
+      style={{ background: C.midnight }}
     >
-      {/* Header row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-base"
-            style={{ background: C.midnight, color: '#fff' }}
-          >
-            🚫
-          </div>
-          <span className="font-bold text-sm" style={{ color: C.midnight }}>
-            {label}
+      {/* fade edges */}
+      <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+        style={{ background: `linear-gradient(to right, ${C.midnight}, transparent)` }} />
+      <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+        style={{ background: `linear-gradient(to left, ${C.midnight}, transparent)` }} />
+
+      <div
+        className="flex gap-0 whitespace-nowrap"
+        style={{
+          animation: 'ticker 28s linear infinite',
+          width: 'max-content',
+        }}
+      >
+        {ticker.map((item, i) => (
+          <span key={i} className="inline-flex items-center gap-2 px-6 text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>
+            <span style={{ color: item.icon === '✦' ? C.spark : undefined }}>{item.icon}</span>
+            <span>{item.text}</span>
           </span>
-        </div>
-        <span
-          className="text-xs font-semibold px-2 py-1 rounded-lg"
-          style={{ background: C.haze, color: C.dusk }}
-        >
-          {streak}
-        </span>
-      </div>
-
-      {/* Streak counter */}
-      <div className="flex items-end gap-2">
-        <span className="text-5xl font-black leading-none" style={{ color: C.midnight }}>
-          7
-        </span>
-        <span className="text-lg mb-1" style={{ color: C.lavender }}>
-          🔥
-        </span>
-        <span className="text-sm mb-1 font-medium" style={{ color: 'rgba(16,21,133,0.5)' }}>
-          {days}
-        </span>
-      </div>
-
-      {/* Day dots */}
-      <div className="flex gap-1.5 mt-1">
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => (
-          <div
-            key={d}
-            className="flex-1 h-2 rounded-full"
-            style={{
-              background: i < 7 ? C.dusk : C.haze,
-              opacity: i < 7 ? 1 : 0.35,
-            }}
-          />
         ))}
       </div>
+
+      <style>{`
+        @keyframes ticker {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
     </div>
   )
 }
@@ -285,6 +421,12 @@ export default function LandingPage() {
         />
 
         <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center gap-6">
+          {/* Badge */}
+          <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold" style={{ background: C.midnight, color: C.spark }}>
+            {c.heroBadge}
+          </span>
+
+          {/* H1 */}
           <h1
             className="text-4xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight"
             style={{ color: C.midnight, whiteSpace: 'pre-line' }}
@@ -307,16 +449,20 @@ export default function LandingPage() {
             {c.heroCta}
           </a>
 
-          {/* Mini visual — fake app screenshot */}
-          <div className="mt-8 w-full max-w-sm mx-auto">
-            <MockHabitCard
-              label={c.mockLabel}
-              days={c.mockDays}
-              streak={c.mockSince}
-            />
+          {/* Trust line */}
+          <p className="text-sm text-center" style={{ color: 'rgba(16,21,133,0.5)' }}>
+            {c.heroTrust}
+          </p>
+
+          {/* Phone mockup */}
+          <div className="mt-8 w-full flex justify-center">
+            <PhoneMockup lang={lang} />
           </div>
         </div>
       </section>
+
+      {/* Social proof ticker */}
+      <SocialProofTicker lang={lang} />
 
       {/* ── BENTO GRID ───────────────────────────────────────────────────── */}
       <section
@@ -380,15 +526,21 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Free — white */}
+          {/* Free — spark yellow */}
           <div
-            className="md:col-span-1 rounded-3xl p-6 flex flex-col gap-2"
-            style={{ background: '#fff', border: `1.5px solid ${C.haze}`, minHeight: '140px' }}
+            className="md:col-span-1 rounded-3xl p-6 flex flex-col justify-between overflow-hidden relative"
+            style={{ background: C.spark, minHeight: '140px' }}
           >
-            <span className="text-xl font-black" style={{ color: C.midnight }}>
-              {c.bento.freeTitle}
+            <span
+              className="absolute -right-3 -bottom-4 font-black leading-none select-none pointer-events-none"
+              style={{ fontSize: 96, color: 'rgba(16,21,133,0.08)' }}
+            >
+              ∞
             </span>
-            <p className="text-sm font-light" style={{ color: 'rgba(16,21,133,0.6)' }}>
+            <span className="text-3xl font-black" style={{ color: C.midnight }}>
+              {lang === 'ru' ? 'Бесплатно' : 'Free'}
+            </span>
+            <p className="text-sm font-semibold mt-2" style={{ color: 'rgba(16,21,133,0.65)' }}>
               {c.bento.freeDesc}
             </p>
           </div>
@@ -447,6 +599,22 @@ export default function LandingPage() {
 
         </div>
       </section>
+
+      {/* Mid-page CTA */}
+      <div className="py-12 flex justify-center px-5">
+        <div className="text-center flex flex-col items-center gap-4">
+          <p className="text-sm font-medium" style={{ color: 'rgba(16,21,133,0.55)' }}>
+            {lang === 'ru' ? 'Всё понятно? Начинай' : 'Convinced? Start now.'}
+          </p>
+          <a
+            href="/app"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm shadow-md transition-transform hover:scale-105"
+            style={{ background: C.midnight, color: C.spark }}
+          >
+            {c.midCtaBtn}
+          </a>
+        </div>
+      </div>
 
       {/* ── STORY — How anti-habits work ─────────────────────────────────── */}
       <section
@@ -600,11 +768,11 @@ export default function LandingPage() {
       >
         <div className="max-w-2xl mx-auto flex flex-col items-center gap-6">
           <p
-            className="text-2xl md:text-3xl font-black leading-tight text-white"
+            className="text-2xl md:text-3xl font-black leading-tight text-white whitespace-pre-line"
           >
             {c.ctaHeadline}
           </p>
-          <p className="text-lg font-light text-white/70">{c.ctaSub}</p>
+          {c.ctaSub && <p className="text-lg font-light text-white/70">{c.ctaSub}</p>}
           <a
             href="/app"
             className="mt-2 inline-flex items-center px-8 py-4 rounded-2xl font-black text-base shadow-xl transition-transform hover:scale-105"
