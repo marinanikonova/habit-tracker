@@ -162,7 +162,7 @@ export default function HabitCard({
                   {t('resetProgress')}
                 </button>
                 <button onClick={() => { onDelete(habit.id); setShowMenu(false) }}
-                  className="w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 flex items-center gap-2">
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-[#EDE9FF] flex items-center gap-2" style={{ color: '#e53e3e' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="3 6 5 6 21 6"/>
                     <path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
@@ -224,12 +224,12 @@ export default function HabitCard({
         className="w-full flex items-center gap-3 py-2.5 px-4 rounded-xl transition-all duration-200"
         style={doneToday
           ? { backgroundColor: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.3)', color: '#101585' }
-          : { backgroundColor: '#101585', color: '#fff', border: '1px solid transparent' }
+          : { backgroundColor: '#FFDD44', color: '#101585', border: '1px solid transparent' }
         }
       >
         <span
           className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${bouncing ? 'check-bounce' : ''}`}
-          style={{ borderColor: doneToday ? '#101585' : 'rgba(255,255,255,0.6)' }}
+          style={{ borderColor: doneToday ? '#101585' : 'rgba(16,21,133,0.4)' }}
         >
           {doneToday && (
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"

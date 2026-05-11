@@ -266,8 +266,8 @@ export default function Home() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fff0f5' }}>
-        <div className="w-8 h-8 border-2 border-pink-400 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#EDE9FF' }}>
+        <div className="w-8 h-8 border-2 border-[#2D22C4] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -310,7 +310,7 @@ export default function Home() {
                   <a
                     href="/profile"
                     title={t('profile')}
-                    className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-pink-100 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[#EDE9FF] text-[#101585] hover:text-[#2D22C4] transition-colors"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -323,7 +323,7 @@ export default function Home() {
                       window.location.reload()
                     }}
                     title={t('logout')}
-                    className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-pink-100 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[#EDE9FF] text-[#101585] hover:text-[#2D22C4] transition-colors"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -340,7 +340,7 @@ export default function Home() {
             <div className="mt-4">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs text-slate-500">{t('dayProgress')}</span>
-                <span className="text-xs font-semibold text-pink-500">
+                <span className="text-xs font-semibold" style={{ color: '#2D22C4' }}>
                   {Math.round((doneToday / totalHabits) * 100)}%
                 </span>
               </div>
