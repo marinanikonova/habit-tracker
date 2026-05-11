@@ -499,31 +499,52 @@ export default function LandingPage() {
 
           {/* Streak — tall, lavender */}
           <div
-            className="md:col-span-2 md:row-span-2 rounded-3xl p-7 flex flex-col justify-between"
+            className="md:col-span-2 md:row-span-2 rounded-3xl p-7 flex flex-col gap-6"
             style={{ background: C.lavender, minHeight: '300px' }}
           >
-            <div className="flex flex-col gap-3">
+            {/* Header */}
+            <div className="flex flex-col gap-2">
               <span className="text-2xl font-black text-white">{c.bento.streakTitle}</span>
               <p className="text-base font-light leading-relaxed text-white/80">
                 {c.bento.streakDesc}
               </p>
             </div>
-            {/* Inline streak visual */}
-            <div className="flex flex-col gap-2 mt-6">
-              <div className="flex items-end gap-2">
-                <span className="text-6xl font-black text-white leading-none">7</span>
-                <span className="text-3xl mb-1">🔥</span>
-              </div>
-              <div className="flex gap-1.5">
-                {Array.from({ length: 7 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 h-2 rounded-full"
-                    style={{ background: 'rgba(255,255,255,0.9)' }}
-                  />
-                ))}
-              </div>
+
+            {/* Big number */}
+            <div className="flex items-end gap-2">
+              <span className="text-7xl font-black text-white leading-none">7</span>
+              <span className="text-4xl mb-2">🔥</span>
             </div>
+
+            {/* Week grid */}
+            <div className="flex gap-2">
+              {(lang === 'ru'
+                ? ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
+                : ['Mo','Tu','We','Th','Fr','Sa','Su']
+              ).map((d, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                  <div
+                    className="w-full rounded-xl flex items-center justify-center"
+                    style={{
+                      height: 36,
+                      background: i < 7 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.2)',
+                    }}
+                  >
+                    {i < 7 && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.lavender} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-semibold text-white/60">{d}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Caption */}
+            <p className="text-xs text-white/50">
+              {lang === 'ru' ? 'Идеальная неделя — все 7 дней' : 'Perfect week — all 7 days'}
+            </p>
           </div>
 
           {/* Free — spark yellow */}
